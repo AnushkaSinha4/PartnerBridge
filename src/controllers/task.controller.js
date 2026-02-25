@@ -32,3 +32,13 @@ export const getAllTasks = asyncHandler(async(req, res) => {
         .status(200)
         .json(new ApiResponse(200, tasks, "Tasks fetched successfully"));
 });
+
+export const getMyTasks = asyncHandler(async(req, res) => {
+    const tasks = await Task.find({ assignedTo: req.user._id })
+        .populate("project", "name")
+        .populate("createdBy", "firstName lastName");
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, tasks, "My tasks fetched successfully"));
+});

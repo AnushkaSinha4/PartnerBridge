@@ -37,8 +37,7 @@ function CreateUser() {
 
   return (
     <form onSubmit={handleSubmit}>
-      <h3>Create User</h3>
-
+  
       <input
         name="firstName"
         placeholder="First Name"

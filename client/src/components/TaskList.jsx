@@ -29,7 +29,7 @@ function TaskList() {
 
   return (
     <div>
-      <h2>All Tasks</h2>
+      
 
       <table border="1" cellPadding="10">
         <thead>
