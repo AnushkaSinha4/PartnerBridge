@@ -1,54 +1,77 @@
-import express from 'express'
+import express from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
 
-import cors from 'cors'
+const app = express();
 
-import cookieParser from 'cookie-parser'
+/* ================= CORS CONFIG ================= */
 
-const app= express()
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174"
+];
 
-// CORS configuration
-app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(
+    cors({
+        origin: function(origin, callback) {
+            // allow requests with no origin (mobile apps, postman, thunder client)
+            if (!origin) return callback(null, true);
 
-app.use(express.json({limit:"10mb"}))
+            if (
+                allowedOrigins.includes(origin) ||
+                origin === process.env.FRONTEND_URL
+            ) {
+                return callback(null, true);
+            }
 
-app.use(express.urlencoded({extended:true,limit:"10mb"}))
+            return callback(new Error("Not allowed by CORS"));
+        },
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
 
-app.use(express.static("public"))
+/* ================= MIDDLEWARES ================= */
 
-app.use(cookieParser())
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.static("public"));
+app.use(cookieParser());
 
+/* ================= ROUTES ================= */
 
-// Import routes
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import projectRoutes from "./routes/project.routes.js";
+import taskRoutes from "./routes/task.routes.js";
 
-// API Routes
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/projects", projectRoutes);
+app.use("/api/v1/tasks", taskRoutes);
 
-// Health check
+/* ================= HEALTH CHECK ================= */
+
 app.get("/health", (req, res) => {
-    res.status(200).json({ 
-        status: "OK", 
+    res.status(200).json({
+        status: "OK",
         message: "Partner Bridge API is running",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
     });
 });
 
-// 404 handler
+/* ================= 404 HANDLER ================= */
+
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: `Route ${req.method} ${req.url} not found`
+        message: `Route ${req.method} ${req.url} not found`,
     });
 });
 
-// Error handler
+/* ================= ERROR HANDLER ================= */
+
 app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -58,7 +81,7 @@ app.use((err, req, res, next) => {
         path: req.path,
         method: req.method,
         body: req.body,
-        query: req.query
+        query: req.query,
     });
 
     res.status(statusCode).json({
@@ -66,11 +89,8 @@ app.use((err, req, res, next) => {
         statusCode,
         message,
         errors: err.errors || [],
-        ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+        ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
     });
 });
 
-
-
-
-export {app}
+export { app };
