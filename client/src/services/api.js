@@ -1,7 +1,136 @@
+// src/services/api.js
 import axios from "axios";
 
-const API = axios.create({
-    baseURL: "http://localhost:5000/api/v1"
+// ===== API CONFIGURATION =====
+const API_BASE_URL = "http://localhost:8000/api/v1";
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true, // For cookies
 });
 
-export default API;
+// ===== REQUEST INTERCEPTOR =====
+api.interceptors.request.use(
+  (config) => {
+    // Add token to every request
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// ===== RESPONSE INTERCEPTOR =====
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle session expiry
+    if (error.response?.status === 401) {
+      localStorage.clear();
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ===== AUTH APIS =====
+export const authAPI = {
+  login: (email, password) => api.post("/auth/login", { email, password }),
+  register: (userData) => api.post("/auth/register", userData),
+  logout: () => api.post("/auth/logout"),
+  getCurrentUser: () => api.get("/auth/me"),
+};
+
+// ===== USER APIS =====
+export const userAPI = {
+  getAllUsers: (params) => api.get("/admin/users", { params }),
+  getUserById: (id) => api.get(`/admin/users/${id}`),
+  createUser: (data) => api.post("/admin/users", data),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
+  updateStatus: (id, status) => api.patch(`/admin/users/${id}/status`, { status }),
+};
+
+// ===== PARTNER APIS =====
+export const partnerAPI = {
+  getAllPartners: (params) => api.get("/admin/partners", { params }),
+  updateTier: (id, tier, commissionRate) => 
+    api.patch(`/admin/partners/${id}/tier`, { tier, commissionRate }),
+  verifyKYC: (id, status, remarks) => 
+    api.patch(`/admin/partners/${id}/kyc`, { status, remarks }),
+};
+
+// ===== PROJECT APIS =====
+export const projectAPI = {
+  // Get all projects
+  getAllProjects: (params) => api.get("/projects", { params }),
+  
+  // Get single project by ID
+  getProjectById: (id) => api.get(`/projects/${id}`),
+  
+  // Create new project
+  createProject: (data) => api.post("/projects", data),
+  
+  // Update project
+  updateProject: (id, data) => api.put(`/projects/${id}`, data),
+  
+  // Delete project
+  deleteProject: (id) => api.delete(`/projects/${id}`),
+  
+  // Add users to project
+  addUsersToProject: (id, userIds) => api.post(`/projects/${id}/users`, { userIds }),
+  
+  // Remove user from project
+  removeUserFromProject: (id, userId) => api.delete(`/projects/${id}/users/${userId}`),
+  
+  // Get project stats
+  getProjectStats: (id) => api.get(`/projects/${id}/stats`),
+  
+  // Upload attachment
+  uploadAttachment: (id, data) => api.post(`/projects/${id}/attachments`, data),
+};
+
+// ========== TASK APIS (ADD THESE) ==========
+export const taskAPI = {
+  // Get all tasks
+  getAllTasks: (params) => api.get("/tasks", { params }),
+  
+  // Get single task by ID
+  getTaskById: (id) => api.get(`/tasks/${id}`),
+  
+  // Create new task
+  createTask: (data) => {
+  console.log("🚀 API Call with data:", data);  // Debug log
+  return api.post("/tasks", data);
+},
+  
+  // Update task
+  updateTask: (id, data) => api.put(`/tasks/${id}`, data),
+  
+  // Delete task
+  deleteTask: (id) => api.delete(`/tasks/${id}`),
+  
+  // Update task status
+  updateTaskStatus: (id, status, timeSpent) => 
+    api.patch(`/tasks/${id}/status`, { status, timeSpent }),
+  
+  // Update task time
+  updateTaskTime: (id, timeSpent) => api.patch(`/tasks/${id}/time`, { timeSpent }),
+  
+  // Assign task to user
+  assignTask: (id, userId) => api.patch(`/tasks/${id}/assign`, { userId }),
+  
+  // Add comment to task
+  addComment: (id, content, mentions) => 
+    api.post(`/tasks/${id}/comments`, { content, mentions }),
+  
+  // Get tasks by user
+  getTasksByUser: (userId, params) => api.get(`/tasks/user/${userId}`, { params }),
+};
+
+export default api;
