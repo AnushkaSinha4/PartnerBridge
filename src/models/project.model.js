@@ -9,82 +9,72 @@ const projectSchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        trim: true
+        trim: true,
+        default: ""
     },
     status: {
         type: String,
-        enum: ["pending", "in-progress", "in-review", "completed"],
-        default: "pending"
+        enum: ["active", "completed", "on-hold", "cancelled"],
+        default: "active"
     },
     priority: {
         type: String,
         enum: ["low", "medium", "high", "urgent"],
         default: "medium"
     },
-    progress: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0
-    },
-    users: [{
+    organization: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    }],
+        ref: "Organization",
+        required: false // Temporarily make it optional
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
     },
-    organization: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Organization",
-        required: true
+    dueDate: {
+        type: Date
     },
     previewLink: {
         type: String,
         trim: true
     },
-    dueDate: {
-        type: Date
-    },
-    startDate: {
-        type: Date
-    },
-    completedDate: {
-        type: Date
-    },
-    attachments: [{
-        filename: String,
-        url: String,
-        uploadedBy: {
+    members: [{
+        user: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User"
         },
-        uploadedAt: {
+        role: {
+            type: String,
+            enum: ["owner", "manager", "member", "viewer"],
+            default: "member"
+        },
+        joinedAt: {
             type: Date,
             default: Date.now
         }
     }],
-    tags: [String]
+    tasks: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Task"
+    }]
 }, {
     timestamps: true
 });
 
-// Update progress based on tasks
+// Update project progress (if you have this method)
 projectSchema.methods.updateProgress = async function() {
     const Task = mongoose.model("Task");
     const tasks = await Task.find({ project: this._id });
     
-    if (tasks.length === 0) {
-        this.progress = 0;
-    } else {
+    if (tasks.length > 0) {
         const completedTasks = tasks.filter(t => t.status === "completed").length;
         this.progress = Math.round((completedTasks / tasks.length) * 100);
+    } else {
+        this.progress = 0;
     }
     
     await this.save();
-    return this.progress;
 };
 
 export const Project = mongoose.model("Project", projectSchema);

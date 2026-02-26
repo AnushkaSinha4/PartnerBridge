@@ -3,46 +3,97 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Project } from "../models/project.model.js";
-import { Task } from "../models/task.model.js";
 import { User } from "../models/user.model.js";
 import mongoose from "mongoose";
 
 // ==================== CREATE PROJECT ====================
 export const createProject = asyncHandler(async (req, res) => {
-    const { name, description, dueDate, startDate, priority, tags, previewLink } = req.body;
+    const { name, description, dueDate, priority, previewLink } = req.body;
 
+    console.log("🔍 CREATE PROJECT REQUEST:");
+    console.log("Body:", req.body);
+    console.log("User:", req.user?._id);
+    console.log("User Organization:", req.user?.organization);
+
+    // Validate required fields
+    if (!name?.trim()) {
+        throw new ApiError(400, "Project name is required");
+    }
+
+    // Get organization ID - either from user or find default
+    let organizationId = req.user?.organization;
+    
+    // If user has no organization, try to find a default one
+    if (!organizationId) {
+        console.log("⚠️ User has no organization, looking for default organization...");
+        const Organization = mongoose.model("Organization");
+        const defaultOrg = await Organization.findOne({});
+        
+        if (defaultOrg) {
+            organizationId = defaultOrg._id;
+            console.log("✅ Using default organization:", organizationId);
+        } else {
+            // If no organization exists, create one
+            console.log("⚠️ No organization found, creating default organization...");
+            const Organization = mongoose.model("Organization");
+            const newOrg = await Organization.create({
+                name: "Default Organization",
+                type: "internal",
+                status: "active"
+            });
+            organizationId = newOrg._id;
+            console.log("✅ Created default organization:", organizationId);
+        }
+    }
+
+    // Create project
     const project = await Project.create({
-        name,
-        description,
-        dueDate,
-        startDate,
+        name: name.trim(),
+        description: description?.trim() || "",
+        dueDate: dueDate || null,
         priority: priority || "medium",
-        tags: tags || [],
-        previewLink,
+        previewLink: previewLink?.trim() || "",
         createdBy: req.user._id,
-        organization: req.user.organization,
-        status: "pending",
-        progress: 0,
-        users: [req.user._id] // Add creator to project
+        organization: organizationId,
+        members: [{
+            user: req.user._id,
+            role: "owner"
+        }]
     });
 
-    const populatedProject = await Project.findById(project._id)
-        .populate("createdBy", "firstName lastName email")
-        .populate("users", "firstName lastName email profileImage");
+    console.log("✅ Project created:", project._id);
+
+    // Populate project data
+    await project.populate([
+        { path: "createdBy", select: "firstName lastName email" },
+        { path: "members.user", select: "firstName lastName email" },
+        { path: "organization", select: "name" }
+    ]);
 
     return res.status(201).json(
-        new ApiResponse(201, populatedProject, "Project created successfully")
+        new ApiResponse(201, project, "Project created successfully")
     );
 });
 
 // ==================== GET ALL PROJECTS ====================
 export const getAllProjects = asyncHandler(async (req, res) => {
-    const { status, search, priority, page = 1, limit = 10 } = req.query;
-    
-    const query = { organization: req.user.organization };
-    
+    const { status, search, page = 1, limit = 10 } = req.query;
+
+    const query = {};
+
+    // Filter by organization if user has one
+    if (req.user?.organization) {
+        query.organization = req.user.organization;
+    } else {
+        // If user has no organization, show projects they created or are member of
+        query.$or = [
+            { createdBy: req.user._id },
+            { "members.user": req.user._id }
+        ];
+    }
+
     if (status) query.status = status;
-    if (priority) query.priority = priority;
+    
     if (search) {
         query.$or = [
             { name: { $regex: search, $options: "i" } },
@@ -50,46 +101,21 @@ export const getAllProjects = asyncHandler(async (req, res) => {
         ];
     }
 
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const projects = await Project.find(query)
-        .populate("users", "firstName lastName email profileImage")
-        .populate("createdBy", "firstName lastName")
+        .populate("createdBy", "firstName lastName email")
+        .populate("members.user", "firstName lastName email")
+        .populate("organization", "name")
         .sort("-createdAt")
         .skip(skip)
         .limit(parseInt(limit));
-
-    // Get task stats for each project
-    const projectsWithStats = await Promise.all(projects.map(async (project) => {
-        const tasks = await Task.find({ project: project._id });
-        const totalTasks = tasks.length;
-        const completedTasks = tasks.filter(t => t.status === "completed").length;
-        const inProgressTasks = tasks.filter(t => t.status === "in-progress").length;
-        const todoTasks = tasks.filter(t => t.status === "todo").length;
-        
-        // Calculate total time spent
-        const totalTimeSpent = tasks.reduce((acc, task) => acc + (task.timeSpent || 0), 0);
-        const totalTimeEstimate = tasks.reduce((acc, task) => acc + (task.timeEstimate || 0), 0);
-
-        return {
-            ...project.toObject(),
-            stats: {
-                totalTasks,
-                completedTasks,
-                inProgressTasks,
-                todoTasks,
-                totalTimeSpent,
-                totalTimeEstimate
-            }
-        };
-    }));
 
     const totalProjects = await Project.countDocuments(query);
 
     return res.status(200).json(
         new ApiResponse(200, {
-            projects: projectsWithStats,
+            projects,
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
@@ -109,64 +135,23 @@ export const getProjectById = asyncHandler(async (req, res) => {
     }
 
     const project = await Project.findById(id)
-        .populate("users", "firstName lastName email profileImage role")
         .populate("createdBy", "firstName lastName email")
-        .populate("attachments.uploadedBy", "firstName lastName");
+        .populate("members.user", "firstName lastName email profileImage")
+        .populate("organization", "name")
+        .populate({
+            path: "tasks",
+            populate: {
+                path: "assignedTo",
+                select: "firstName lastName email"
+            }
+        });
 
     if (!project) {
         throw new ApiError(404, "Project not found");
     }
 
-    // Check organization access
-    if (project.organization.toString() !== req.user.organization.toString()) {
-        throw new ApiError(403, "Access denied to this project");
-    }
-
-    // Get all tasks for this project
-    const tasks = await Task.find({ project: id })
-        .populate("assignedTo", "firstName lastName email profileImage")
-        .populate("assignedBy", "firstName lastName")
-        .populate({
-            path: "comments",
-            populate: {
-                path: "createdBy",
-                select: "firstName lastName profileImage"
-            }
-        })
-        .sort("-createdAt");
-
-    // Calculate project stats
-    const totalTasks = tasks.length;
-    const completedTasks = tasks.filter(t => t.status === "completed").length;
-    const inProgressTasks = tasks.filter(t => t.status === "in-progress").length;
-    const todoTasks = tasks.filter(t => t.status === "todo").length;
-    const totalTimeSpent = tasks.reduce((acc, task) => acc + (task.timeSpent || 0), 0);
-    const totalTimeEstimate = tasks.reduce((acc, task) => acc + (task.timeEstimate || 0), 0);
-
-    // Group tasks by status
-    const tasksByStatus = {
-        todo: tasks.filter(t => t.status === "todo"),
-        "in-progress": tasks.filter(t => t.status === "in-progress"),
-        "in-review": tasks.filter(t => t.status === "in-review"),
-        completed: tasks.filter(t => t.status === "completed"),
-        blocked: tasks.filter(t => t.status === "blocked")
-    };
-
     return res.status(200).json(
-        new ApiResponse(200, {
-            project,
-            tasks,
-            tasksByStatus,
-            stats: {
-                totalTasks,
-                completedTasks,
-                inProgressTasks,
-                todoTasks,
-                totalTimeSpent,
-                totalTimeEstimate,
-                progress: project.progress
-            }
-        }, "Project fetched successfully")
+        new ApiResponse(200, project, "Project fetched successfully")
     );
 });
 
@@ -175,107 +160,30 @@ export const updateProject = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError(400, "Invalid project ID");
+    }
+
     const project = await Project.findById(id);
     if (!project) {
         throw new ApiError(404, "Project not found");
     }
 
-    // Check organization access
-    if (project.organization.toString() !== req.user.organization.toString()) {
-        throw new ApiError(403, "Access denied to this project");
-    }
+    // Check if user has permission to update
+    const isOwner = project.createdBy.toString() === req.user._id.toString();
+    const isAdmin = req.user.role?.name === "admin" || req.user.role?.name === "super_admin";
 
-    // If status is being updated to completed, set completedDate
-    if (updates.status === "completed" && project.status !== "completed") {
-        updates.completedDate = new Date();
+    if (!isOwner && !isAdmin) {
+        throw new ApiError(403, "You don't have permission to update this project");
     }
 
     Object.assign(project, updates);
     await project.save();
 
-    const updatedProject = await Project.findById(id)
-        .populate("users", "firstName lastName email profileImage")
-        .populate("createdBy", "firstName lastName");
+    await project.populate("createdBy", "firstName lastName email");
 
     return res.status(200).json(
-        new ApiResponse(200, updatedProject, "Project updated successfully")
-    );
-});
-
-// ==================== ADD USERS TO PROJECT ====================
-export const addUsersToProject = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { userIds } = req.body;
-
-    if (!Array.isArray(userIds)) {
-        throw new ApiError(400, "userIds must be an array");
-    }
-
-    const project = await Project.findById(id);
-    if (!project) {
-        throw new ApiError(404, "Project not found");
-    }
-
-    // Check organization access
-    if (project.organization.toString() !== req.user.organization.toString()) {
-        throw new ApiError(403, "Access denied to this project");
-    }
-
-    // Verify all users exist and belong to same organization
-    const users = await User.find({
-        _id: { $in: userIds },
-        organization: req.user.organization
-    });
-
-    if (users.length !== userIds.length) {
-        throw new ApiError(400, "Some users not found or don't belong to your organization");
-    }
-
-    // Add unique users
-    const existingUserIds = project.users.map(id => id.toString());
-    const newUsers = userIds.filter(id => !existingUserIds.includes(id));
-    
-    project.users = [...project.users, ...newUsers];
-    await project.save();
-
-    const updatedProject = await Project.findById(id)
-        .populate("users", "firstName lastName email profileImage");
-
-    return res.status(200).json(
-        new ApiResponse(200, updatedProject, "Users added to project successfully")
-    );
-});
-
-// ==================== REMOVE USER FROM PROJECT ====================
-export const removeUserFromProject = asyncHandler(async (req, res) => {
-    const { id, userId } = req.params;
-
-    const project = await Project.findById(id);
-    if (!project) {
-        throw new ApiError(404, "Project not found");
-    }
-
-    // Check organization access
-    if (project.organization.toString() !== req.user.organization.toString()) {
-        throw new ApiError(403, "Access denied to this project");
-    }
-
-    // Cannot remove creator
-    if (project.createdBy.toString() === userId) {
-        throw new ApiError(400, "Cannot remove project creator");
-    }
-
-    project.users = project.users.filter(u => u.toString() !== userId);
-    await project.save();
-
-    // Also unassign all tasks from this user in this project
-    await Task.updateMany(
-        { project: id, assignedTo: userId },
-        { assignedTo: null }
-    );
-
-    return res.status(200).json(
-        new ApiResponse(200, project, "User removed from project successfully")
+        new ApiResponse(200, project, "Project updated successfully")
     );
 });
 
@@ -283,17 +191,25 @@ export const removeUserFromProject = asyncHandler(async (req, res) => {
 export const deleteProject = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new ApiError(400, "Invalid project ID");
+    }
+
     const project = await Project.findById(id);
     if (!project) {
         throw new ApiError(404, "Project not found");
     }
 
-    // Check organization access
-    if (project.organization.toString() !== req.user.organization.toString()) {
-        throw new ApiError(403, "Access denied to this project");
+    // Check if user has permission to delete
+    const isOwner = project.createdBy.toString() === req.user._id.toString();
+    const isAdmin = req.user.role?.name === "admin" || req.user.role?.name === "super_admin";
+
+    if (!isOwner && !isAdmin) {
+        throw new ApiError(403, "You don't have permission to delete this project");
     }
 
     // Delete all tasks associated with this project
+    const Task = mongoose.model("Task");
     await Task.deleteMany({ project: id });
 
     // Delete the project
@@ -304,77 +220,69 @@ export const deleteProject = asyncHandler(async (req, res) => {
     );
 });
 
-// ==================== UPLOAD PROJECT ATTACHMENT ====================
-export const uploadProjectAttachment = asyncHandler(async (req, res) => {
+// ==================== ADD MEMBER TO PROJECT ====================
+export const addProjectMember = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { filename, url } = req.body;
+    const { userId, role = "member" } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ApiError(400, "Invalid ID format");
+    }
 
     const project = await Project.findById(id);
     if (!project) {
         throw new ApiError(404, "Project not found");
     }
 
-    project.attachments.push({
-        filename,
-        url,
-        uploadedBy: req.user._id
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Check if user is already a member
+    const isMember = project.members.some(m => m.user.toString() === userId);
+    if (isMember) {
+        throw new ApiError(400, "User is already a member of this project");
+    }
+
+    project.members.push({
+        user: userId,
+        role,
+        joinedAt: new Date()
     });
 
     await project.save();
 
+    await project.populate("members.user", "firstName lastName email");
+
     return res.status(200).json(
-        new ApiResponse(200, project.attachments, "Attachment uploaded successfully")
+        new ApiResponse(200, project, "Member added successfully")
     );
 });
 
-// ==================== GET PROJECT STATS ====================
-export const getProjectStats = asyncHandler(async (req, res) => {
-    const { id } = req.params;
+// ==================== REMOVE MEMBER FROM PROJECT ====================
+export const removeProjectMember = asyncHandler(async (req, res) => {
+    const { id, userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(userId)) {
+        throw new ApiError(400, "Invalid ID format");
+    }
 
     const project = await Project.findById(id);
     if (!project) {
         throw new ApiError(404, "Project not found");
     }
 
-    const tasks = await Task.find({ project: id });
-    
-    const stats = {
-        totalTasks: tasks.length,
-        byStatus: {
-            todo: tasks.filter(t => t.status === "todo").length,
-            "in-progress": tasks.filter(t => t.status === "in-progress").length,
-            "in-review": tasks.filter(t => t.status === "in-review").length,
-            completed: tasks.filter(t => t.status === "completed").length,
-            blocked: tasks.filter(t => t.status === "blocked").length
-        },
-        byPriority: {
-            low: tasks.filter(t => t.priority === "low").length,
-            medium: tasks.filter(t => t.priority === "medium").length,
-            high: tasks.filter(t => t.priority === "high").length,
-            urgent: tasks.filter(t => t.priority === "urgent").length
-        },
-        byUser: {},
-        timeStats: {
-            totalTimeSpent: tasks.reduce((acc, t) => acc + (t.timeSpent || 0), 0),
-            totalTimeEstimate: tasks.reduce((acc, t) => acc + (t.timeEstimate || 0), 0)
-        }
-    };
+    // Cannot remove the owner
+    if (project.createdBy.toString() === userId) {
+        throw new ApiError(400, "Cannot remove the project owner");
+    }
 
-    // Tasks by user
-    tasks.forEach(task => {
-        if (task.assignedTo) {
-            const userId = task.assignedTo.toString();
-            if (!stats.byUser[userId]) {
-                stats.byUser[userId] = { total: 0, completed: 0 };
-            }
-            stats.byUser[userId].total++;
-            if (task.status === "completed") {
-                stats.byUser[userId].completed++;
-            }
-        }
-    });
+    project.members = project.members.filter(m => m.user.toString() !== userId);
+    await project.save();
 
     return res.status(200).json(
-        new ApiResponse(200, stats, "Project stats fetched successfully")
+        new ApiResponse(200, project, "Member removed successfully")
     );
 });
