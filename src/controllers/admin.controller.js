@@ -6,24 +6,37 @@ import { User } from "../models/user.model.js";
 import { Organization } from "../models/organization.model.js";
 import mongoose from "mongoose";
 
-// @desc    Get all users (with filters)
-// @route   GET /api/v1/admin/users
-// @access  Private (Admin only)
-export const getAllUsers = asyncHandler(async (req, res) => {
-    const { 
-        page = 1, 
-        limit = 10, 
-        role, 
-        status,
-        search,
-        sortBy = "createdAt",
-        sortOrder = "desc"
+/* ================= COMMON ORG CHECK FUNCTION ================= */
+
+const checkOrgAccess = (reqUser, targetUser) => {
+    if (reqUser.role === "super_admin") return false;
+
+    if (
+        reqUser.organization &&
+        targetUser.organization &&
+        reqUser.organization.toString() !== targetUser.organization.toString()
+    ) {
+        return true;
+    }
+
+    return false;
+};
+
+/* ================= GET ALL USERS ================= */
+
+export const getAllUsers = asyncHandler(async(req, res) => {
+    const {
+        page = 1,
+            limit = 10,
+            role,
+            status,
+            search,
+            sortBy = "createdAt",
+            sortOrder = "desc",
     } = req.query;
 
-    // Build query
     const query = {};
 
-    // Super admin sees all, admin sees only their organization
     if (req.user.role !== "super_admin" && req.user.organization) {
         query.organization = req.user.organization;
     }
@@ -31,20 +44,19 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     if (role) query.role = role;
     if (status) query.status = status;
 
-    // Search by name or email
     if (search) {
         query.$or = [
             { firstName: { $regex: search, $options: "i" } },
             { lastName: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } }
+            { email: { $regex: search, $options: "i" } },
         ];
     }
 
-    // Pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sort = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
+    const sort = {
+        [sortBy]: sortOrder === "desc" ? -1 : 1
+    };
 
-    // Execute query
     const users = await User.find(query)
         .populate("organization", "name")
         .sort(sort)
@@ -55,22 +67,24 @@ export const getAllUsers = asyncHandler(async (req, res) => {
     const totalUsers = await User.countDocuments(query);
 
     return res.status(200).json(
-        new ApiResponse(200, {
-            users: users.map(user => user.getSanitizedUser()),
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalUsers,
-                totalPages: Math.ceil(totalUsers / parseInt(limit))
-            }
-        }, "Users fetched successfully")
+        new ApiResponse(
+            200, {
+                users,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    totalUsers,
+                    totalPages: Math.ceil(totalUsers / parseInt(limit)),
+                },
+            },
+            "Users fetched successfully"
+        )
     );
 });
 
-// @desc    Get single user by ID
-// @route   GET /api/v1/admin/users/:id
-// @access  Private (Admin only)
-export const getUserById = asyncHandler(async (req, res) => {
+/* ================= GET USER BY ID ================= */
+
+export const getUserById = asyncHandler(async(req, res) => {
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -85,49 +99,37 @@ export const getUserById = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Check organization access
-    if (req.user.role !== "super_admin" && 
-        req.user.organization?.toString() !== user.organization?.toString()) {
+    if (checkOrgAccess(req.user, user)) {
         throw new ApiError(403, "Access denied to this user");
     }
 
-    return res.status(200).json(
-        new ApiResponse(200, {
-            user: user.getSanitizedUser()
-        }, "User fetched successfully")
-    );
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { user }, "User fetched successfully"));
 });
 
-// @desc    Create new user (Admin only)
-// @route   POST /api/v1/admin/users
-// @access  Private (Admin only)
-export const createUser = asyncHandler(async (req, res) => {
-    const { 
-        email, 
+/* ================= CREATE USER ================= */
+
+export const createUser = asyncHandler(async(req, res) => {
+    const {
+        email,
         password,
-        firstName, 
-        lastName, 
+        firstName,
+        lastName,
         role,
         organizationId,
-        partnerTier,
-        commissionRate,
-        phoneNumber,
-        companyName
     } = req.body;
 
-    // Check if user exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
         throw new ApiError(409, "User with this email already exists");
     }
 
-    // Set organization
     let organization = organizationId;
     if (!organization && req.user.role !== "super_admin") {
         organization = req.user.organization;
     }
 
-    // Validate organization
     if (organization) {
         const orgExists = await Organization.findById(organization);
         if (!orgExists) {
@@ -135,48 +137,28 @@ export const createUser = asyncHandler(async (req, res) => {
         }
     }
 
-    // Validate partner fields
-    if (role === "partner") {
-        if (!partnerTier || !commissionRate) {
-            throw new ApiError(400, "Partner tier and commission rate are required for partner role");
-        }
-    }
-
-    // Create user
     const user = await User.create({
         email,
-        password: password || "Default@123", // Should be generated randomly
+        password: password || "Default@123",
         firstName,
         lastName,
         role,
         organization,
-        partnerTier: role === "partner" ? partnerTier : undefined,
-        commissionRate: role === "partner" ? commissionRate : undefined,
-        phoneNumber,
-        companyName: role === "client" ? companyName : undefined,
         status: "active",
-        createdBy: req.user._id
+        createdBy: req.user._id,
     });
 
-    const createdUser = await User.findById(user._id)
-        .populate("organization", "name")
-        .select("-password -refreshToken");
-
-    return res.status(201).json(
-        new ApiResponse(201, {
-            user: createdUser.getSanitizedUser()
-        }, "User created successfully")
-    );
+    return res
+        .status(201)
+        .json(new ApiResponse(201, { user }, "User created successfully"));
 });
 
-// @desc    Update user
-// @route   PUT /api/v1/admin/users/:id
-// @access  Private (Admin only)
-export const updateUser = asyncHandler(async (req, res) => {
+/* ================= UPDATE USER ================= */
+
+export const updateUser = asyncHandler(async(req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    // Remove sensitive fields
     delete updates.password;
     delete updates._id;
     delete updates.refreshToken;
@@ -186,31 +168,21 @@ export const updateUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Check organization access
-    if (req.user.role !== "super_admin" && 
-        req.user.organization?.toString() !== user.organization?.toString()) {
+    if (checkOrgAccess(req.user, user)) {
         throw new ApiError(403, "Access denied to this user");
     }
 
-    // Update user
     Object.assign(user, updates);
     await user.save();
 
-    const updatedUser = await User.findById(id)
-        .populate("organization", "name")
-        .select("-password -refreshToken");
-
-    return res.status(200).json(
-        new ApiResponse(200, {
-            user: updatedUser.getSanitizedUser()
-        }, "User updated successfully")
-    );
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { user }, "User updated successfully"));
 });
 
-// @desc    Delete user (soft delete)
-// @route   DELETE /api/v1/admin/users/:id
-// @access  Private (Admin only)
-export const deleteUser = asyncHandler(async (req, res) => {
+/* ================= DELETE USER ================= */
+
+export const deleteUser = asyncHandler(async(req, res) => {
     const { id } = req.params;
 
     const user = await User.findById(id);
@@ -218,30 +190,25 @@ export const deleteUser = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Prevent self-deletion
     if (user._id.toString() === req.user._id.toString()) {
         throw new ApiError(400, "You cannot delete your own account");
     }
 
-    // Check organization access
-    if (req.user.role !== "super_admin" && 
-        req.user.organization?.toString() !== user.organization?.toString()) {
+    if (checkOrgAccess(req.user, user)) {
         throw new ApiError(403, "Access denied to this user");
     }
 
-    // Soft delete
     user.status = "inactive";
     await user.save();
 
-    return res.status(200).json(
-        new ApiResponse(200, {}, "User deleted successfully")
-    );
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "User deleted successfully"));
 });
 
-// @desc    Update user status
-// @route   PATCH /api/v1/admin/users/:id/status
-// @access  Private (Admin only)
-export const updateUserStatus = asyncHandler(async (req, res) => {
+/* ================= UPDATE USER STATUS ================= */
+
+export const updateUserStatus = asyncHandler(async(req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
@@ -254,14 +221,7 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
         throw new ApiError(404, "User not found");
     }
 
-    // Prevent self status change
-    if (user._id.toString() === req.user._id.toString()) {
-        throw new ApiError(400, "You cannot change your own status");
-    }
-
-    // Check organization access
-    if (req.user.role !== "super_admin" && 
-        req.user.organization?.toString() !== user.organization?.toString()) {
+    if (checkOrgAccess(req.user, user)) {
         throw new ApiError(403, "Access denied to this user");
     }
 
@@ -269,99 +229,73 @@ export const updateUserStatus = asyncHandler(async (req, res) => {
     await user.save();
 
     return res.status(200).json(
-        new ApiResponse(200, {
-            user: user.getSanitizedUser()
-        }, `User status updated to ${status}`)
+        new ApiResponse(200, { user }, "User status updated successfully")
     );
 });
 
-// @desc    Get partners list
-// @route   GET /api/v1/admin/partners
-// @access  Private (Admin only)
-export const getPartners = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, tier, kycStatus } = req.query;
+/* ================= GET PARTNERS ================= */
 
+export const getPartners = asyncHandler(async(req, res) => {
     const query = { role: "partner" };
 
     if (req.user.role !== "super_admin" && req.user.organization) {
         query.organization = req.user.organization;
     }
 
-    if (tier) query.partnerTier = tier;
-    if (kycStatus) query.kycStatus = kycStatus;
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
     const partners = await User.find(query)
         .populate("organization", "name")
-        .sort("-createdAt")
-        .skip(skip)
-        .limit(parseInt(limit))
         .select("-password -refreshToken");
 
-    const totalPartners = await User.countDocuments(query);
-
     return res.status(200).json(
-        new ApiResponse(200, {
-            partners: partners.map(p => p.getSanitizedUser()),
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPartners,
-                totalPages: Math.ceil(totalPartners / parseInt(limit))
-            }
-        }, "Partners fetched successfully")
+        new ApiResponse(200, { partners }, "Partners fetched successfully")
     );
 });
 
-// @desc    Update partner tier
-// @route   PATCH /api/v1/admin/partners/:id/tier
-// @access  Private (Admin only)
-export const updatePartnerTier = asyncHandler(async (req, res) => {
+/* ================= UPDATE PARTNER TIER ================= */
+
+export const updatePartnerTier = asyncHandler(async(req, res) => {
     const { id } = req.params;
-    const { tier, commissionRate } = req.body;
+    const { partnerTier, commissionRate } = req.body;
 
     const partner = await User.findOne({ _id: id, role: "partner" });
+
     if (!partner) {
         throw new ApiError(404, "Partner not found");
     }
 
-    partner.partnerTier = tier;
-    if (commissionRate) {
+    partner.partnerTier = partnerTier;
+    if (commissionRate !== undefined) {
         partner.commissionRate = commissionRate;
     }
+
     await partner.save();
 
     return res.status(200).json(
-        new ApiResponse(200, {
-            partner: partner.getSanitizedUser()
-        }, "Partner tier updated successfully")
+        new ApiResponse(200, { partner }, "Partner updated successfully")
     );
 });
 
-// @desc    Verify partner KYC
-// @route   PATCH /api/v1/admin/partners/:id/kyc
-// @access  Private (Admin only)
-export const verifyPartnerKYC = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { status, remarks } = req.body;
 
-    if (!["verified", "rejected"].includes(status)) {
+/* ================= VERIFY PARTNER KYC ================= */
+
+export const verifyPartnerKYC = asyncHandler(async(req, res) => {
+    const { id } = req.params;
+    const { kycStatus } = req.body;
+
+    if (!["verified", "rejected"].includes(kycStatus)) {
         throw new ApiError(400, "Invalid KYC status");
     }
 
     const partner = await User.findOne({ _id: id, role: "partner" });
+
     if (!partner) {
         throw new ApiError(404, "Partner not found");
     }
 
-    partner.kycStatus = status;
-    partner.kycRemarks = remarks;
+    partner.kycStatus = kycStatus;
     await partner.save();
 
     return res.status(200).json(
-        new ApiResponse(200, {
-            partner: partner.getSanitizedUser()
-        }, `KYC ${status} successfully`)
+        new ApiResponse(200, { partner }, "KYC updated successfully")
     );
 });

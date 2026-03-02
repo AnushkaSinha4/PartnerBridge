@@ -77,17 +77,26 @@ export const register = asyncHandler(async(req, res) => {
         .json(new ApiResponse(201, { user: createdUser }, "User registered successfully"));
 });
 
+
 // LOGIN
 export const login = asyncHandler(async(req, res) => {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email }).select("+password");
+    if (!email || !password) {
+        throw new ApiError(400, "Email and password are required");
+    }
+
+    // Always normalize email
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail }).select("+password");
 
     if (!user) {
         throw new ApiError(401, "Invalid credentials");
     }
 
     const isPasswordValid = await user.comparePassword(password);
+
     if (!isPasswordValid) {
         throw new ApiError(401, "Invalid credentials");
     }
@@ -115,10 +124,10 @@ export const login = asyncHandler(async(req, res) => {
 
     const dashboardRoutes = {
         super_admin: "/super-admin/dashboard",
-        admin: "/admin/dashboard",
-        employee: "/employee/dashboard",
-        client: "/client/dashboard",
-        partner: "/partner/dashboard",
+        admin: "/admin",
+        employee: "/employee",
+        client: "/client",
+        partner: "/partner",
     };
 
     return res.status(200).json(
@@ -126,8 +135,8 @@ export const login = asyncHandler(async(req, res) => {
             200, {
                 user: sanitizedUser,
                 organization,
-                tokens: tokens,
-                dashboard: dashboardRoutes[user.role] || "/dashboard",
+                tokens,
+                dashboard: dashboardRoutes[user.role] || "/",
             },
             "Login successful"
         )

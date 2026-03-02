@@ -5,10 +5,19 @@ import { ApiError } from "../utils/apierror.js";
 
 import { User } from "../models/user.model.js";
 
-export const verifyJWT = asyncHandler(async (req, res, next) => {
+export const verifyJWT = asyncHandler(async(req, res, next) => {
     try {
-        const token = req.cookies?.accessToken || 
-                     req.header("Authorization")?.replace("Bearer ", "");
+        let token;
+
+        // Check cookies
+        if (req.cookies && req.cookies.accessToken) {
+            token = req.cookies.accessToken;
+        }
+
+        // Check Authorization header
+        if (!token && req.headers.authorization) {
+            token = req.headers.authorization.replace("Bearer ", "");
+        }
 
         if (!token) {
             throw new ApiError(401, "Unauthorized request");
@@ -36,6 +45,6 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         if (error.name === "TokenExpiredError") {
             throw new ApiError(401, "Access token expired");
         }
-        throw new ApiError(401, error?.message || "Invalid access token");
+        throw new ApiError(401, error.message || "Invalid access token");
     }
 });

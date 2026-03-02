@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../../components/Sidebar.jsx';
+// import Sidebar from '../../components/Sidebar.jsx';
 import Header from '../../components/Header.jsx';
 import ProjectTable from '../../components/ProjectTable.jsx';
 import TaskList from '../../components/TaskList.jsx';
@@ -114,7 +114,7 @@ const handleAssignTask = async (taskData) => {
 
   return (
     <div style={styles.container}>
-      <Sidebar />
+      {/* <Sidebar /> */}
       
       <div style={styles.mainContent}>
         <Header 
@@ -218,13 +218,13 @@ const handleAssignTask = async (taskData) => {
 
 const styles = {
   container: {
-    display: 'flex',
+    // display: 'flex',
     minHeight: '100vh',
     backgroundColor: '#f9fafb'
   },
   mainContent: {
     flex: 1,
-    marginLeft: '280px',
+    // marginLeft: '280px',
     padding: '0 30px 30px'
   },
   statsGrid: {
