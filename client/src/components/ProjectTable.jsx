@@ -1,27 +1,26 @@
-import { useState } from 'react';
-import { projectAPI } from '../services/api';
+
+import { useState } from "react";
+import { projectAPI } from "../services/api";
+import { Eye, Link2, FileText, Users } from "lucide-react";
+
+const statusConfig = {
+  "in-progress": { bg: "bg-yellow-100 text-yellow-800",  label: "In progress" },
+  "completed":   { bg: "bg-green-100 text-green-800",    label: "Completed" },
+  "in-review":   { bg: "bg-blue-100 text-blue-800",      label: "In review" },
+  "pending":     { bg: "bg-gray-100 text-gray-700",      label: "Pending" },
+};
 
 const ProjectTable = ({ projects, onViewProject, onStatusChange }) => {
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
 
   const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'completed', label: 'Completed' },
-    { id: 'in-progress', label: 'In progress' },
-    { id: 'in-review', label: 'In review' },
-    { id: 'pending', label: 'Pending' }
+    { id: "all",         label: "All" },
+    { id: "completed",   label: "Completed" },
+    { id: "in-progress", label: "In Progress" },
+    { id: "in-review",   label: "In Review" },
+    { id: "pending",     label: "Pending" },
   ];
-
-  const getStatusBadge = (status) => {
-    const badges = {
-      'in-progress': { bg: '#fef3c7', color: '#92400e', text: 'In progress' },
-      'completed': { bg: '#d1fae5', color: '#065f46', text: 'Completed' },
-      'in-review': { bg: '#dbeafe', color: '#1e40af', text: 'In review' },
-      'pending': { bg: '#f3f4f6', color: '#4b5563', text: 'Pending' }
-    };
-    return badges[status] || badges.pending;
-  };
 
   const handleStatusChange = async (projectId, newStatus) => {
     try {
@@ -29,40 +28,35 @@ const ProjectTable = ({ projects, onViewProject, onStatusChange }) => {
       await projectAPI.updateProject(projectId, { status: newStatus });
       onStatusChange?.();
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error("Error updating status:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Format time (minutes to hours:minutes)
   const formatTime = (minutes) => {
-    if (!minutes) return '0:00';
+    if (!minutes) return "0:00";
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+    return `${hours}:${mins.toString().padStart(2, "0")}`;
   };
 
-  const filteredProjects = filter === 'all' 
-    ? projects 
-    : projects.filter(p => p.status === filter);
+  const filteredProjects = filter === "all" ? projects : projects.filter(p => p.status === filter);
 
   return (
-    <div style={styles.container}>
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
       {/* Filters */}
-      <div style={styles.filters}>
-        <span style={styles.filterLabel}>Show:</span>
-        <div style={styles.filterButtons}>
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 flex-wrap">
+        <span className="text-sm font-medium text-gray-500">Show:</span>
+        <div className="flex gap-2 flex-wrap">
           {filters.map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              style={{
-                ...styles.filterButton,
-                backgroundColor: filter === f.id ? '#1f2937' : 'transparent',
-                color: filter === f.id ? 'white' : '#374151',
-                borderColor: filter === f.id ? '#1f2937' : '#e5e7eb'
-              }}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors
+                ${filter === f.id
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
             >
               {f.label}
             </button>
@@ -70,304 +64,140 @@ const ProjectTable = ({ projects, onViewProject, onStatusChange }) => {
         </div>
       </div>
 
-      {/* Projects Table */}
-      <div style={styles.tableContainer}>
-        <table style={styles.table}>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[900px]">
           <thead>
-            <tr>
-              <th style={styles.th}>NAME</th>
-              <th style={styles.th}>STATUS</th>
-              <th style={styles.th}>USERS</th>
-              <th style={styles.th}>PROGRESS</th>
-              <th style={styles.th}>PREVIEW</th>
-              <th style={styles.th}>TIME TRACKING</th>
-              <th style={styles.th}>ACTIONS</th>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              {["Name", "Status", "Users", "Progress", "Preview", "Time Tracking", "Actions"].map(h => (
+                <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody>
-            {filteredProjects.map((project) => (
-              <tr key={project._id} style={styles.tr}>
-                <td style={styles.td}>
-                  <div style={styles.projectName} onClick={() => onViewProject(project._id)}>
-                    <span style={styles.projectIcon}>📄</span>
-                    {project.name}
-                  </div>
-                </td>
-                
-                <td style={styles.td}>
-                  <select
-                    value={project.status}
-                    onChange={(e) => handleStatusChange(project._id, e.target.value)}
-                    style={{
-                      ...styles.statusSelect,
-                      backgroundColor: getStatusBadge(project.status).bg,
-                      color: getStatusBadge(project.status).color
-                    }}
-                    disabled={loading}
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="in-review">In Review</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </td>
-                
-                <td style={styles.td}>
-                  <div style={styles.users}>
-                    {project.users && project.users.slice(0, 3).map((user, i) => (
-                      <div key={i} style={styles.userAvatar}>
-                        <img 
-                          src={`https://ui-avatars.com/api/?name=${user.firstName || 'U'}+${user.lastName || ''}&size=24&background=random`}
+          <tbody className="divide-y divide-gray-50">
+            {filteredProjects.map((project) => {
+              const statusCfg = statusConfig[project.status] || statusConfig.pending;
+              return (
+                <tr key={project._id} className="hover:bg-gray-50 transition-colors group">
+                  {/* Name */}
+                  <td className="px-5 py-4">
+                    <button
+                      onClick={() => onViewProject(project._id)}
+                      className="flex items-center gap-3 font-medium text-gray-800 hover:text-blue-600 transition-colors"
+                    >
+                      <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                      </div>
+                      {project.name}
+                    </button>
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-5 py-4">
+                    <select
+                      value={project.status}
+                      onChange={(e) => handleStatusChange(project._id, e.target.value)}
+                      disabled={loading}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${statusCfg.bg}`}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="in-review">In Review</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </td>
+
+                  {/* Users */}
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-1">
+                      {project.users?.slice(0, 3).map((user, i) => (
+                        <img
+                          key={i}
+                          src={`https://ui-avatars.com/api/?name=${user.firstName || "U"}+${user.lastName || ""}&size=28&background=random`}
                           alt={user.firstName}
-                          style={styles.userImage}
+                          className="w-7 h-7 rounded-full border-2 border-white shadow-sm"
+                        />
+                      ))}
+                      {project.users?.length > 3 && (
+                        <span className="w-7 h-7 rounded-full bg-gray-100 border-2 border-white flex items-center justify-center text-xs font-semibold text-gray-600">
+                          +{project.users.length - 3}
+                        </span>
+                      )}
+                      {(!project.users || project.users.length === 0) && (
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5" /> None
+                        </span>
+                      )}
+                    </div>
+                  </td>
+
+                  {/* Progress */}
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2 min-w-[120px]">
+                      <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${project.progress || 0}%` }}
                         />
                       </div>
-                    ))}
-                    {project.users && project.users.length > 3 && (
-                      <span style={styles.moreUsers}>+{project.users.length - 3}</span>
-                    )}
-                  </div>
-                </td>
-                
-                <td style={styles.td}>
-                  <div style={styles.progressContainer}>
-                    <div style={styles.progressBar}>
-                      <div style={{
-                        ...styles.progressFill,
-                        width: `${project.progress || 0}%`
-                      }} />
+                      <span className="text-xs font-medium text-gray-600 w-8 text-right">{project.progress || 0}%</span>
                     </div>
-                    <span style={styles.progressText}>{project.progress || 0}%</span>
-                  </div>
-                </td>
-                
-                <td style={styles.td}>
-                  {project.previewLink ? (
-                    <a href={project.previewLink} target="_blank" rel="noopener noreferrer" style={styles.previewLink}>
-                      Website 🔗
-                    </a>
-                  ) : (
-                    <span style={styles.noLink}>None</span>
-                  )}
-                </td>
-                
-                <td style={styles.td}>
-                  <div style={styles.timeTracking}>
-                    <span style={styles.timeSpent}>
+                  </td>
+
+                  {/* Preview */}
+                  <td className="px-5 py-4">
+                    {project.previewLink ? (
+                      <a
+                        href={project.previewLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Website <Link2 className="w-3.5 h-3.5" />
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-400">None</span>
+                    )}
+                  </td>
+
+                  {/* Time Tracking */}
+                  <td className="px-5 py-4">
+                    <span className="text-sm font-semibold text-gray-800">
                       {formatTime(project.stats?.totalTimeSpent || project.timeSpent)}
                     </span>
                     {(project.stats?.totalTimeEstimate || project.timeEstimate) > 0 && (
-                      <>
-                        <span style={styles.timeSeparator}>/</span>
-                        <span style={styles.timeEstimate}>
-                          {formatTime(project.stats?.totalTimeEstimate || project.timeEstimate)}
-                        </span>
-                      </>
+                      <span className="text-sm text-gray-400">
+                        {" "}/ {formatTime(project.stats?.totalTimeEstimate || project.timeEstimate)}
+                      </span>
                     )}
-                  </div>
-                </td>
-                
-                <td style={styles.td}>
-                  <button 
-                    onClick={() => onViewProject(project._id)}
-                    style={styles.viewBtn}
-                  >
-                    View
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="px-5 py-4">
+                    <button
+                      onClick={() => onViewProject(project._id)}
+                      className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
         {filteredProjects.length === 0 && (
-          <div style={styles.noData}>
-            <span style={styles.noDataIcon}>📭</span>
-            <p>No projects found</p>
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <FileText className="w-10 h-10 mb-3 text-gray-200" />
+            <p className="text-sm font-medium text-gray-500">No projects found</p>
           </div>
         )}
       </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    padding: '24px',
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-  },
-  filters: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    marginBottom: '24px'
-  },
-  filterLabel: {
-    fontSize: '14px',
-    color: '#6b7280',
-    fontWeight: '500'
-  },
-  filterButtons: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap'
-  },
-  filterButton: {
-    padding: '6px 12px',
-    border: '1px solid',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s'
-  },
-  tableContainer: {
-    overflowX: 'auto'
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    minWidth: '900px'
-  },
-  th: {
-    textAlign: 'left',
-    padding: '12px 16px',
-    borderBottom: '1px solid #e5e7eb',
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  },
-  td: {
-    padding: '16px',
-    borderBottom: '1px solid #e5e7eb',
-    fontSize: '14px',
-    color: '#1f2937'
-  },
-  tr: {
-    transition: 'background-color 0.2s',
-    ':hover': {
-      backgroundColor: '#f9fafb'
-    }
-  },
-  projectName: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  projectIcon: {
-    fontSize: '18px'
-  },
-  statusSelect: {
-    padding: '4px 8px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '500',
-    border: 'none',
-    cursor: 'pointer',
-    outline: 'none'
-  },
-  users: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px'
-  },
-  userAvatar: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    overflow: 'hidden',
-    border: '2px solid white',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-  },
-  userImage: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover'
-  },
-  moreUsers: {
-    marginLeft: '4px',
-    fontSize: '12px',
-    color: '#6b7280',
-    fontWeight: '500'
-  },
-  progressContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    minWidth: '120px'
-  },
-  progressBar: {
-    flex: 1,
-    height: '6px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '3px',
-    overflow: 'hidden'
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#1f2937',
-    transition: 'width 0.3s'
-  },
-  progressText: {
-    fontSize: '12px',
-    color: '#6b7280',
-    minWidth: '40px'
-  },
-  previewLink: {
-    color: '#1f2937',
-    textDecoration: 'none',
-    fontSize: '13px',
-    fontWeight: '500'
-  },
-  noLink: {
-    color: '#9ca3af',
-    fontSize: '13px'
-  },
-  timeTracking: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    fontSize: '13px'
-  },
-  timeSpent: {
-    fontWeight: '500',
-    color: '#1f2937'
-  },
-  timeSeparator: {
-    color: '#9ca3af'
-  },
-  timeEstimate: {
-    color: '#6b7280'
-  },
-  viewBtn: {
-    padding: '6px 12px',
-    backgroundColor: '#f3f4f6',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: '500',
-    color: '#374151',
-    cursor: 'pointer',
-    ':hover': {
-      backgroundColor: '#e5e7eb'
-    }
-  },
-  noData: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: '#9ca3af'
-  },
-  noDataIcon: {
-    fontSize: '48px',
-    display: 'block',
-    marginBottom: '12px'
-  }
 };
 
 export default ProjectTable;

@@ -1,69 +1,36 @@
-const StatsCard = ({ title, value, icon, change, color }) => {
+
+
+import { TrendingUp, TrendingDown } from "lucide-react";
+
+const StatsCard = ({ title, value, icon: Icon, change, color }) => {
+  const iconBg = {
+    blue:   "bg-blue-100 text-blue-600",
+    green:  "bg-green-100 text-green-600",
+    yellow: "bg-yellow-100 text-yellow-600",
+    red:    "bg-red-100 text-red-600",
+    purple: "bg-purple-100 text-purple-600",
+  }[color] || "bg-gray-100 text-gray-600";
+
   return (
-    <div style={styles.card}>
-      <div style={styles.iconWrapper}>
-        <span style={styles.icon}>{icon}</span>
+    <div className="flex items-center gap-4 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow duration-200 cursor-pointer">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+        {Icon && <Icon className="w-6 h-6" />}
       </div>
-      <div style={styles.content}>
-        <p style={styles.title}>{title}</p>
-        <h3 style={styles.value}>{value}</h3>
-        {change && (
-          <p style={{
-            ...styles.change,
-            color: change > 0 ? "#10b981" : "#ef4444"
-          }}>
-            {change > 0 ? "↑" : "↓"} {Math.abs(change)}%
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-500 font-medium">{title}</p>
+        <h3 className="text-2xl font-bold text-gray-900 mt-0.5">{value ?? 0}</h3>
+        {change !== undefined && (
+          <p className={`flex items-center gap-0.5 text-xs font-semibold mt-0.5 ${change > 0 ? "text-green-600" : "text-red-500"}`}>
+            {change > 0
+              ? <TrendingUp className="w-3.5 h-3.5" />
+              : <TrendingDown className="w-3.5 h-3.5" />}
+            {Math.abs(change)}%
           </p>
         )}
       </div>
     </div>
   );
-};
-
-const styles = {
-  card: {
-    display: "flex",
-    alignItems: "center",
-    gap: "16px",
-    padding: "24px",
-    backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
-    transition: "transform 0.2s, boxShadow 0.2s",
-    cursor: "pointer",
-    ":hover": {
-      transform: "translateY(-2px)",
-      boxShadow: "0 4px 6px rgba(0,0,0,0.1)"
-    }
-  },
-  iconWrapper: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "12px",
-    backgroundColor: "#f3f4f6",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "24px"
-  },
-  content: {
-    flex: 1
-  },
-  title: {
-    fontSize: "14px",
-    color: "#6b7280",
-    marginBottom: "4px"
-  },
-  value: {
-    fontSize: "24px",
-    fontWeight: "600",
-    color: "#1f2937",
-    marginBottom: "4px"
-  },
-  change: {
-    fontSize: "12px",
-    fontWeight: "500"
-  }
 };
 
 export default StatsCard;

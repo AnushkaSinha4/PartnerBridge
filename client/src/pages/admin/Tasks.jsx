@@ -1,28 +1,31 @@
+
+
 import { useState } from 'react';
+import { CalendarDays, User, Briefcase, Eye, AlertTriangle, Inbox } from 'lucide-react';
 import { taskAPI } from '../services/api';
 
 const TaskList = ({ tasks, onViewTask, onStatusChange }) => {
   const [loading, setLoading] = useState(false);
 
-  const getPriorityColor = (priority) => {
-    const colors = {
-      low: { bg: '#e6f7e6', color: '#2e7d32' },
-      medium: { bg: '#fff4e5', color: '#f57c00' },
-      high: { bg: '#ffe5e5', color: '#c62828' },
-      urgent: { bg: '#ff0000', color: 'white' }
+  const getPriorityStyle = (priority) => {
+    const map = {
+      low:    { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+      medium: { bg: '#fffbeb', color: '#b45309', border: '#fde68a' },
+      high:   { bg: '#fff1f2', color: '#be123c', border: '#fecdd3' },
+      urgent: { bg: '#fef2f2', color: '#991b1b', border: '#fca5a5' },
     };
-    return colors[priority] || colors.medium;
+    return map[priority] || map.medium;
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      todo: { bg: '#f3f4f6', color: '#4b5563' },
-      'in-progress': { bg: '#fef3c7', color: '#92400e' },
-      'in-review': { bg: '#dbeafe', color: '#1e40af' },
-      completed: { bg: '#d1fae5', color: '#065f46' },
-      blocked: { bg: '#fee2e2', color: '#991b1b' }
+  const getStatusStyle = (status) => {
+    const map = {
+      'todo':        { bg: '#f3f4f6', color: '#374151', border: '#d1d5db' },
+      'in-progress': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+      'in-review':   { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe' },
+      'completed':   { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+      'blocked':     { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca' },
     };
-    return colors[status] || colors.todo;
+    return map[status] || map['todo'];
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
@@ -37,196 +40,297 @@ const TaskList = ({ tasks, onViewTask, onStatusChange }) => {
     }
   };
 
+  if (tasks.length === 0) {
+    return (
+      <div style={styles.emptyState}>
+        <div style={styles.emptyIconWrap}>
+          <Inbox size={32} color="#9ca3af" />
+        </div>
+        <p style={styles.emptyText}>No tasks found</p>
+        <p style={styles.emptySubText}>Tasks assigned to you will appear here.</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={styles.container}>
+    <div style={styles.wrapper}>
+      <style>{`
+        .task-card:hover {
+          box-shadow: 0 4px 16px rgba(0,0,0,0.09) !important;
+          transform: translateY(-1px);
+        }
+        .view-btn:hover {
+          background-color: #1d4ed8 !important;
+        }
+        .status-select:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px #bfdbfe;
+        }
+      `}</style>
+
       <div style={styles.taskGrid}>
-        {tasks.map((task) => (
-          <div key={task._id} style={styles.taskCard}>
-            <div style={styles.taskHeader}>
-              <h3 style={styles.taskTitle} onClick={() => onViewTask(task._id)}>
-                {task.title}
-              </h3>
-              <span style={{
-                ...styles.priorityBadge,
-                backgroundColor: getPriorityColor(task.priority).bg,
-                color: getPriorityColor(task.priority).color
-              }}>
-                {task.priority}
-              </span>
-            </div>
+        {tasks.map((task) => {
+          const priorityStyle = getPriorityStyle(task.priority);
+          const statusStyle   = getStatusStyle(task.status);
 
-            <p style={styles.taskDescription}>
-              {task.description || 'No description'}
-            </p>
-
-            <div style={styles.taskMeta}>
-              <div style={styles.metaItem}>
-                <span style={styles.metaLabel}>Project:</span>
-                <span style={styles.metaValue}>{task.project?.name || 'N/A'}</span>
-              </div>
-              <div style={styles.metaItem}>
-                <span style={styles.metaLabel}>Assigned to:</span>
-                <span style={styles.metaValue}>
-                  {task.assignedTo?.firstName || 'Unassigned'} {task.assignedTo?.lastName || ''}
+          return (
+            <div key={task._id} className="task-card" style={styles.taskCard}>
+              {/* Card Header */}
+              <div style={styles.cardHeader}>
+                <h3
+                  style={styles.taskTitle}
+                  onClick={() => onViewTask(task._id)}
+                  title={task.title}
+                >
+                  {task.title}
+                </h3>
+                <span style={{
+                  ...styles.badge,
+                  backgroundColor: priorityStyle.bg,
+                  color: priorityStyle.color,
+                  border: `1px solid ${priorityStyle.border}`,
+                }}>
+                  {task.priority === 'urgent' && <AlertTriangle size={10} style={{ marginRight: '3px' }} />}
+                  {task.priority}
                 </span>
               </div>
-            </div>
 
-            <div style={styles.taskFooter}>
-              <select
-                value={task.status}
-                onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                style={{
-                  ...styles.statusSelect,
-                  backgroundColor: getStatusColor(task.status).bg,
-                  color: getStatusColor(task.status).color
-                }}
-                disabled={loading}
-              >
-                <option value="todo">To Do</option>
-                <option value="in-progress">In Progress</option>
-                <option value="in-review">In Review</option>
-                <option value="completed">Completed</option>
-                <option value="blocked">Blocked</option>
-              </select>
+              {/* Description */}
+              <p style={styles.description}>
+                {task.description || 'No description provided.'}
+              </p>
 
-              <button 
-                onClick={() => onViewTask(task._id)}
-                style={styles.viewBtn}
-              >
-                View Details
-              </button>
-            </div>
-
-            {task.dueDate && (
-              <div style={styles.dueDate}>
-                📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+              {/* Meta */}
+              <div style={styles.meta}>
+                <div style={styles.metaRow}>
+                  <Briefcase size={13} color="#9ca3af" />
+                  <span style={styles.metaLabel}>Project</span>
+                  <span style={styles.metaValue}>{task.project?.name || 'N/A'}</span>
+                </div>
+                <div style={styles.metaRow}>
+                  <User size={13} color="#9ca3af" />
+                  <span style={styles.metaLabel}>Assigned</span>
+                  <span style={styles.metaValue}>
+                    {task.assignedTo
+                      ? `${task.assignedTo.firstName || ''} ${task.assignedTo.lastName || ''}`.trim() || 'Unassigned'
+                      : 'Unassigned'}
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
 
-      {tasks.length === 0 && (
-        <div style={styles.noData}>
-          <span style={styles.noDataIcon}>📭</span>
-          <p>No tasks found</p>
-        </div>
-      )}
+              {/* Divider */}
+              <div style={styles.divider} />
+
+              {/* Footer */}
+              <div style={styles.footer}>
+                <select
+                  className="status-select"
+                  value={task.status}
+                  onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                  disabled={loading}
+                  style={{
+                    ...styles.statusSelect,
+                    backgroundColor: statusStyle.bg,
+                    color: statusStyle.color,
+                    border: `1px solid ${statusStyle.border}`,
+                  }}
+                >
+                  <option value="todo">To Do</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="in-review">In Review</option>
+                  <option value="completed">Completed</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+
+                <button
+                  className="view-btn"
+                  onClick={() => onViewTask(task._id)}
+                  style={styles.viewBtn}
+                >
+                  <Eye size={14} style={{ marginRight: '5px' }} />
+                  Details
+                </button>
+              </div>
+
+              {/* Due date */}
+              {task.dueDate && (
+                <div style={styles.dueDate}>
+                  <CalendarDays size={13} color="#6b7280" />
+                  <span>Due {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };
 
 const styles = {
-  container: {
+  wrapper: {
     backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
     borderRadius: '12px',
-    padding: '24px'
+    padding: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
   taskGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '20px'
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: '18px',
   },
   taskCard: {
-    padding: '20px',
+    padding: '18px 20px',
     backgroundColor: '#f9fafb',
-    borderRadius: '12px',
+    borderRadius: '10px',
     border: '1px solid #e5e7eb',
-    transition: 'transform 0.2s, boxShadow 0.2s',
-    cursor: 'pointer',
-    ':hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-    }
+    transition: 'box-shadow 0.2s, transform 0.2s',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
   },
-  taskHeader: {
+  cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '12px'
+    gap: '10px',
+    marginBottom: '10px',
   },
   taskTitle: {
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: '600',
     color: '#111827',
     margin: 0,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    lineHeight: '1.4',
+    flex: 1,
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
   },
-  priorityBadge: {
-    padding: '4px 8px',
-    borderRadius: '4px',
+  badge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '3px 9px',
+    borderRadius: '20px',
     fontSize: '11px',
     fontWeight: '600',
-    textTransform: 'uppercase'
+    textTransform: 'capitalize',
+    flexShrink: 0,
+    whiteSpace: 'nowrap',
   },
-  taskDescription: {
-    fontSize: '14px',
+  description: {
+    fontSize: '13px',
     color: '#6b7280',
-    marginBottom: '16px',
-    lineHeight: '1.5'
+    marginBottom: '14px',
+    lineHeight: '1.55',
+    overflow: 'hidden',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
   },
-  taskMeta: {
-    marginBottom: '16px'
-  },
-  metaItem: {
+  meta: {
     display: 'flex',
-    marginBottom: '8px',
-    fontSize: '13px'
+    flexDirection: 'column',
+    gap: '7px',
+    marginBottom: '14px',
+  },
+  metaRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '12px',
   },
   metaLabel: {
-    width: '90px',
-    color: '#6b7280'
+    color: '#9ca3af',
+    width: '54px',
+    flexShrink: 0,
   },
   metaValue: {
-    flex: 1,
-    color: '#1f2937',
-    fontWeight: '500'
+    color: '#374151',
+    fontWeight: '500',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
   },
-  taskFooter: {
+  divider: {
+    height: '1px',
+    backgroundColor: '#e5e7eb',
+    margin: '0 0 14px',
+  },
+  footer: {
     display: 'flex',
-    gap: '12px',
-    marginBottom: '12px'
+    gap: '10px',
+    alignItems: 'center',
+    marginBottom: '12px',
   },
   statusSelect: {
     flex: 1,
-    padding: '8px',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
-    fontSize: '13px',
-    fontWeight: '500',
+    padding: '7px 10px',
+    borderRadius: '7px',
+    fontSize: '12px',
+    fontWeight: '600',
     cursor: 'pointer',
-    outline: 'none'
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    textAlign: 'center',
+    transition: 'box-shadow 0.15s',
   },
   viewBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#1f2937',
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '7px 13px',
+    backgroundColor: '#2563eb',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
+    borderRadius: '7px',
+    fontSize: '12px',
+    fontWeight: '600',
     cursor: 'pointer',
-    ':hover': {
-      backgroundColor: '#374151'
-    }
+    transition: 'background-color 0.15s',
+    whiteSpace: 'nowrap',
   },
   dueDate: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
     fontSize: '12px',
     color: '#6b7280',
-    paddingTop: '12px',
-    borderTop: '1px solid #e5e7eb'
   },
-  noData: {
+  emptyState: {
+    backgroundColor: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    padding: '60px 24px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
     textAlign: 'center',
-    padding: '60px 20px',
-    color: '#9ca3af'
   },
-  noDataIcon: {
-    fontSize: '48px',
-    display: 'block',
-    marginBottom: '12px'
-  }
+  emptyIconWrap: {
+    width: '64px',
+    height: '64px',
+    borderRadius: '50%',
+    backgroundColor: '#f3f4f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: '16px',
+  },
+  emptyText: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#374151',
+    margin: '0 0 4px',
+  },
+  emptySubText: {
+    fontSize: '13px',
+    color: '#9ca3af',
+    margin: 0,
+  },
 };
 
 export default TaskList;

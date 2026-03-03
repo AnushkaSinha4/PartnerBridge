@@ -1,120 +1,181 @@
-import { NavLink } from "react-router-dom";
-import { useState } from "react";
+
+
+import { NavLink, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import {
+  LayoutDashboard, ShoppingCart, Users, MessageSquare,
+  FolderOpen, CheckSquare, Star, BarChart2, FileText,
+  LogOut, Zap, ChevronLeft, ChevronRight,
+  FolderKanban, ClipboardList, Folders,
+} from "lucide-react";
+import partnerBridgeLogo from "../assets/partnerBridgeLogo.jpeg"
+
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try { setUser(JSON.parse(userStr)); } catch (e) { console.error("Error parsing user:", e); }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("user");
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
+
+  const role = localStorage.getItem("role") || "admin";
+  const isEmployee = role === "employee";
 
   const mainMenuItems = [
-    { path: "/admin", icon: "📊", label: "Dashboard" },
-    { path: "/admin/ecommerce", icon: "🛒", label: "E-commerce" },
-    { path: "/admin/users", icon: "👥", label: "Users" },
-    { path: "/admin/support", icon: "💬", label: "Support" },
-    { path: "/admin/projects", icon: "📁", label: "Projects" },
+    { path: `/${role}/dashboard`,  icon: LayoutDashboard, label: "Dashboard" },
+    ...(!isEmployee ? [{ path: `/${role}/ecommerce`, icon: ShoppingCart, label: "E-commerce" }] : []),
+    { path: `/${role}/users`,     icon: Users,         label: "Users" },
+    // { path: `/${role}/support`,   icon: MessageSquare, label: "Support" },
+    // { path: `/${role}/projects`,  icon: FolderOpen,    label: "Projects" },
   ];
 
   const projectMenuItems = [
-    { path: "/admin/todo", icon: "✅", label: "To Do" },
-    { path: "/admin/all-projects", icon: "📂", label: "All Projects" },
-    { path: "/admin/my-projects", icon: "⭐", label: "My Projects" },
-    { path: "/admin/project-summary", icon: "📊", label: "Project Summary" },
-    { path: "/admin/my-tasks", icon: "📋", label: "My Tasks" },
-    { path: "/admin/all-files", icon: "📄", label: "All Files" },
+    { path: `/${role}/tasks`,           icon: CheckSquare,   label: isEmployee ? "My Tasks" : "To Do" },
+    // { path: `/${role}/all-projects`,    icon: Folders,       label: "All Projects" },
+    // { path: `/${role}/my-projects`,     icon: Star,          label: "My Projects" },
+    // ...(!isEmployee ? [{ path: `/${role}/project-summary`, icon: BarChart2, label: "Project Summary" }] : []),
+    // { path: `/${role}/my-tasks`,        icon: ClipboardList, label: "My Tasks" },
+    // { path: `/${role}/all-files`,       icon: FileText,      label: "All Files" },
   ];
 
+  const NavItem = ({ path, icon: Icon, label }) => (
+    <NavLink
+      to={path}
+      title={collapsed ? label : undefined}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150
+        ${isActive ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"}
+        ${collapsed ? "justify-center" : ""}`
+      }
+    >
+      <Icon className="w-[18px] h-[18px] shrink-0" />
+      {!collapsed && label}
+    </NavLink>
+  );
+
   return (
-    <div
-      style={{ ...styles.sidebar, width: collapsed ? "80px" : "280px" }}>
-    
+    <aside
+      className={`${collapsed ? "w-[68px]" : "w-64"}
+        shrink-0 h-screen bg-white border-r border-gray-200
+        flex flex-col transition-all duration-300 overflow-hidden`}
+    >
       {/* Logo */}
-      <div style={styles.logo}> 
-      <span style={styles.logoIcon}>⚡</span>
-      {!collapsed && <span style={styles.logoText}>Partner Bridge</span>}
-      <button onClick={() => setCollapsed(!collapsed)} style={styles.collapseBtn} > 
-      {collapsed ? "→" : "←"} </button>
+      <div className="flex items-center justify-between px-4 py-[18px] border-b border-gray-100">
+        {!collapsed ? (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                <img src={partnerBridgeLogo} alt="PartnerBridge Logo" className="w-14 h-8" />
+              </div>
+              
+              <div className="flex flex-col">
+                <span className="text-base font-bold text-gray-900 tracking-tight whitespace-nowrap">PartnerBridge</span>
+                <span className="text-[10px] text-gray-400 whitespace-nowrap">by Kavach Cloud Enterprises</span>
+              </div>
+                 
+            </div>
+
+           
+            <button
+              onClick={() => setCollapsed(true)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </>
+        ) : (
+          <div className="flex flex-col items-center w-full gap-2">
+            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+              <Zap className="w-4 h-4 text-white" />
+            </div>
+            <button
+              onClick={() => setCollapsed(false)}
+              className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Main Menu */}
-      <div style={styles.menuSection}>
-      {!collapsed && <div style={styles.sectionTitle}>Dashboards</div>}
-      {mainMenuItems.map(item => ( <NavLink key={item.path} to={item.path} style={({isActive}) => ({ ...styles.menuItem, backgroundColor: isActive ? "#f3f4f6" : "transparent", color: isActive ? "#1f2937" : "#6b7280", justifyContent: collapsed ? "center" : "flex-start" })} > 
-      <span style={styles.menuIcon}>{item.icon}</span> {!collapsed && <span>{item.label}</span>} 
-      </NavLink> ))}
+      {/* Role Badge */}
+      {!collapsed && (
+        <div className="px-3 pt-3 pb-1">
+          <div className={`rounded-lg px-3 py-2 text-center text-xs font-bold uppercase tracking-wider
+            ${isEmployee ? "bg-blue-50 text-blue-700 border border-blue-100" : "bg-purple-50 text-purple-700 border border-purple-100"}`}>
+            Role: {role}
+          </div>
+        </div>
+      )}
+
+      {/* Scrollable nav */}
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4">
+        {/* Main section */}
+        <div>
+          {!collapsed && (
+            <p className="px-2 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Main</p>
+          )}
+          <div className="space-y-0.5">
+            {mainMenuItems.map(item => <NavItem key={item.path} {...item} />)}
+          </div>
+        </div>
+
+        {/* Projects section */}
+        <div>
+          {!collapsed && (
+            <p className="px-2 pb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Projects</p>
+          )}
+          <div className="space-y-0.5">
+            {projectMenuItems.map(item => <NavItem key={item.path} {...item} />)}
+          </div>
+        </div>
       </div>
 
-      {/* Project Menu */}
-      <div style={styles.menuSection}> 
-      {!collapsed && <div style={styles.sectionTitle}>Projects</div>} 
-      {projectMenuItems.map(item => ( <NavLink key={item.path} to={item.path} style={({isActive}) => ({ ...styles.menuItem, backgroundColor: isActive ? "#f3f4f6" : "transparent", color: isActive ? "#1f2937" : "#6b7280", justifyContent: collapsed ? "center" : "flex-start" })} > 
-      <span style={styles.menuIcon}>{item.icon}</span>
-      {!collapsed && <span>{item.label}</span>} 
-      </NavLink> ))} 
+      {/* User Profile + Logout */}
+      <div className="p-3 border-t border-gray-100">
+        {!collapsed ? (
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+              {user?.firstName?.[0] || "A"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{user?.firstName} {user?.lastName}</p>
+              <p className="text-xs text-gray-400 truncate">{user?.email || "admin@company.com"}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleLogout}
+            title="Logout"
+            className="w-full flex justify-center p-2 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <LogOut className="w-[18px] h-[18px]" />
+          </button>
+        )}
       </div>
+    </aside>
+  );
+};
 
-      {/* User Profile */}
-      {!collapsed && ( <div style={styles.userProfile}> 
-      <div style={styles.userAvatar}>👤</div> <div style={styles.userInfo}>
-      <div style={styles.userName}>Admin User</div> 
-      <div style={styles.userEmail}>admin@company.com</div> </div>
-     </div>
-     )} 
-     
-    </div> ); };
-
-
-
-const styles = {
-   sidebar: {
-     height: "100vh", backgroundColor: "white", borderRight: "1px solid #e5e7eb", transition: "width 0.3s", overflow: "hidden", position: "fixed", left: 0, top: 0, display: "flex", flexDirection: "column" 
-   },
-
-
-logo: { 
-  padding: "24px 20px", display: "flex", alignItems: "center", gap: "10px", borderBottom: "1px solid #e5e7eb" 
-},
-
-logoIcon: {
-   fontSize: "24px" 
-  }, 
-logoText: {
-   fontSize: "20px", 
-   fontWeight: "600", 
-   color: "#1f2937", 
-   flex: 1 
-},
-
-collapseBtn: {
-   background: "none", border: "none", cursor: "pointer", fontSize: "16px", color: "#9ca3af", padding: "4px" 
-}, 
-menuSection: {
-   padding: "20px 12px", borderBottom: "1px solid #e5e7eb" 
-},
-
-
-sectionTitle: { 
-  padding: "0 12px 12px", color: "#9ca3af", fontSize: "11px", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.5px" 
-},
-
-menuItem: {
-   display: "flex", alignItems: "center", gap: "12px", padding: "10px 12px", textDecoration: "none", borderRadius: "8px", marginBottom: "2px", fontSize: "14px", fontWeight: "500", transition: "all 0.2s" 
-}, 
-menuIcon: {
-   fontSize: "18px" 
-},
-
-userProfile: {
-   marginTop: "auto", padding: "20px", borderTop: "1px solid #e5e7eb", display: "flex", alignItems: "center", gap: "12px" 
-}, 
-userAvatar: {
-   width: "40px", height: "40px", borderRadius: "50%", backgroundColor: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" 
-},
-
-userInfo: 
-{ flex: 1 }, 
-userName: { 
-  fontSize: "14px", fontWeight: "600", color: "#1f2937"
- },
-  userEmail: { 
-    fontSize: "12px", color: "#6b7280"
-  }
- };
 export default Sidebar;

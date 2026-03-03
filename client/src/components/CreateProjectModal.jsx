@@ -1,4 +1,7 @@
+
+
 import { useState } from "react";
+import { X } from "lucide-react";
 
 const CreateProjectModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -14,64 +17,65 @@ const CreateProjectModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
-    setFormData({
-      name: "",
-      description: "",
-      dueDate: "",
-      previewLink: "",
-      priority: "medium"
-    });
+    setFormData({ name: "", description: "", dueDate: "", previewLink: "", priority: "medium" });
   };
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <h3 style={styles.title}>Create New Project</h3>
-          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900">Create New Project</h3>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Project Name *</label>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Project Name <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              style={styles.input}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Website Redesign"
               required
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
             />
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description</label>
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              style={styles.textarea}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Project description..."
-              rows="3"
+              rows={3}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white resize-vertical transition-colors"
             />
           </div>
 
-          <div style={styles.formRow}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Due Date</label>
+          {/* Due Date + Priority */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Due Date</label>
               <input
                 type="date"
                 value={formData.dueDate}
-                onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-                style={styles.input}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Priority</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Priority</label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                style={styles.select}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -81,22 +85,31 @@ const CreateProjectModal = ({ isOpen, onClose, onSubmit }) => {
             </div>
           </div>
 
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Preview Link</label>
+          {/* Preview Link */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Preview Link</label>
             <input
               type="url"
               value={formData.previewLink}
-              onChange={(e) => setFormData({...formData, previewLink: e.target.value})}
-              style={styles.input}
+              onChange={(e) => setFormData({ ...formData, previewLink: e.target.value })}
               placeholder="https://example.com"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
             />
           </div>
 
-          <div style={styles.actions}>
-            <button type="button" onClick={onClose} style={styles.cancelBtn}>
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               Cancel
             </button>
-            <button type="submit" style={styles.submitBtn}>
+            <button
+              type="submit"
+              className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
               Create Project
             </button>
           </div>
@@ -104,138 +117,6 @@ const CreateProjectModal = ({ isOpen, onClose, onSubmit }) => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-    animation: "fadeIn 0.2s"
-  },
-  modal: {
-    backgroundColor: "white",
-    borderRadius: "12px",
-    width: "90%",
-    maxWidth: "500px",
-    padding: "24px",
-    boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "24px"
-  },
-  title: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#111827"
-  },
-  closeBtn: {
-    background: "none",
-    border: "none",
-    fontSize: "20px",
-    cursor: "pointer",
-    color: "#9ca3af",
-    padding: "4px",
-    ":hover": {
-      color: "#4b5563"
-    }
-  },
-  formGroup: {
-    marginBottom: "16px",
-    flex: 1
-  },
-  formRow: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
-    marginBottom: "8px"
-  },
-  label: {
-    display: "block",
-    marginBottom: "6px",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#374151"
-  },
-  input: {
-    width: "100%",
-    padding: "10px 12px",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    boxSizing: "border-box",
-    ":focus": {
-      borderColor: "#1f2937"
-    }
-  },
-  textarea: {
-    width: "100%",
-    padding: "10px 12px",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    fontFamily: "inherit",
-    resize: "vertical",
-    boxSizing: "border-box",
-    ":focus": {
-      borderColor: "#1f2937"
-    }
-  },
-  select: {
-    width: "100%",
-    padding: "10px 12px",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    backgroundColor: "white",
-    boxSizing: "border-box",
-    cursor: "pointer"
-  },
-  actions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginTop: "24px"
-  },
-  cancelBtn: {
-    padding: "10px 16px",
-    border: "1px solid #e5e7eb",
-    backgroundColor: "white",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#374151",
-    ":hover": {
-      backgroundColor: "#f9fafb"
-    }
-  },
-  submitBtn: {
-    padding: "10px 16px",
-    border: "none",
-    backgroundColor: "#1f2937",
-    color: "white",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500",
-    ":hover": {
-      backgroundColor: "#374151"
-    }
-  }
 };
 
 export default CreateProjectModal;

@@ -1,30 +1,30 @@
-import { Outlet } from "react-router-dom";
-import Sidebar from "./Sidebar";
+// import { Outlet } from "react-router-dom";
+// import Sidebar from "./Sidebar";
 
 
-const AdminLayout = () => {
-  return (
-    <div>
+// const AdminLayout = () => {
+//   return (
+//     <div>
       
-      {/* Fixed Sidebar */}
-      <Sidebar />
+//       {/* Fixed Sidebar */}
+//       <Sidebar />
 
-      {/* Main Content Area */}
-      <div
-        style={{
-          marginLeft: "280px",   // IMPORTANT
-          minHeight: "100vh"
-        }}
-      >
+//       {/* Main Content Area */}
+//       <div
+//         style={{
+//           marginLeft: "280px",   // IMPORTANT
+//           minHeight: "100vh"
+//         }}
+//       >
        
         
-        <main style={{ padding: "32px" }}>
-          <Outlet />
-        </main>
+//         <main style={{ padding: "32px" }}>
+//           <Outlet />
+//         </main>
 
-      </div>
-     </div>
-  );
-};
+//       </div>
+//      </div>
+//   );
+// };
 
-export default AdminLayout;
+// export default AdminLayout;

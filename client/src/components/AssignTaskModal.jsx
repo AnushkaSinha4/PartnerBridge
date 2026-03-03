@@ -1,13 +1,14 @@
-// src/components/AssignTaskModal.jsx
+
+
 import { useState, useEffect } from "react";
+import { X, AlertCircle } from "lucide-react";
 
 const AssignTaskModal = ({ isOpen, onClose, onSubmit, projects, users }) => {
-  // ✅ SINGLE source of truth
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     projectId: "",
-    assignedTo: "",  // ✅ ONLY this field
+    assignedTo: "",
     priority: "medium",
     dueDate: "",
     timeEstimate: ""
@@ -16,59 +17,38 @@ const AssignTaskModal = ({ isOpen, onClose, onSubmit, projects, users }) => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        title: "",
-        description: "",
-        projectId: "",
-        assignedTo: "",
-        priority: "medium",
-        dueDate: "",
-        timeEstimate: ""
-      });
+      setFormData({ title: "", description: "", projectId: "", assignedTo: "", priority: "medium", dueDate: "", timeEstimate: "" });
       setErrors({});
     }
   }, [isOpen]);
 
-  // Validate form
   const validateForm = () => {
     const newErrors = {};
-    
     if (!formData.title.trim()) newErrors.title = "Title required";
     if (!formData.projectId) newErrors.projectId = "Project required";
     if (!formData.assignedTo) newErrors.assignedTo = "Assignee required";
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ SINGLE submit handler - ONE data object
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     setLoading(true);
-    
-    // ✅ ONLY create ONE data object
     const taskData = {
       title: formData.title.trim(),
       description: formData.description?.trim() || "",
       projectId: formData.projectId,
-      assignedTo: formData.assignedTo,  // ✅ CORRECT field name
+      assignedTo: formData.assignedTo,
       priority: formData.priority,
       dueDate: formData.dueDate || undefined,
       timeEstimate: formData.timeEstimate ? Number(formData.timeEstimate) : undefined
     };
-
-    // ✅ Log ONLY ONCE
     console.log("🚀 SUBMITTING ONE TASK:", taskData);
-    
     try {
       await onSubmit(taskData);
-      // Parent will close modal on success
     } catch (error) {
       console.error("❌ Submit error:", error);
     } finally {
@@ -79,29 +59,37 @@ const AssignTaskModal = ({ isOpen, onClose, onSubmit, projects, users }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   if (!isOpen) return null;
 
-  return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Assign New Task</h2>
-          <button onClick={onClose} style={styles.closeBtn}>✕</button>
-        </div>
-        
-        <p style={styles.subtitle}>Create and assign a task to team member</p>
+  const priorityBadgeColors = {
+    low:    "bg-green-100 text-green-700",
+    medium: "bg-yellow-100 text-yellow-700",
+    high:   "bg-orange-100 text-orange-700",
+    urgent: "bg-red-100 text-red-700",
+  };
 
-        <form onSubmit={handleSubmit}>
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Assign New Task</h2>
+            <p className="text-sm text-gray-500 mt-0.5">Create and assign a task to a team member</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
           {/* Title */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Title <span style={styles.required}>*</span>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Title <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -109,89 +97,91 @@ const AssignTaskModal = ({ isOpen, onClose, onSubmit, projects, users }) => {
               value={formData.title}
               onChange={handleChange}
               placeholder="Enter task title"
-              style={{
-                ...styles.input,
-                borderColor: errors.title ? '#ef4444' : '#e5e7eb'
-              }}
               disabled={loading}
+              className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-gray-50 focus:bg-white
+                ${errors.title ? "border-red-400" : "border-gray-200"}`}
             />
-            {errors.title && <span style={styles.errorText}>{errors.title}</span>}
+            {errors.title && (
+              <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
+                <AlertCircle className="w-3 h-3" /> {errors.title}
+              </p>
+            )}
           </div>
 
           {/* Description */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleChange}
               placeholder="Enter task description"
-              style={styles.textarea}
-              rows="3"
+              rows={3}
               disabled={loading}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white resize-vertical transition-colors"
             />
           </div>
 
           {/* Project */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Project <span style={styles.required}>*</span>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Project <span className="text-red-500">*</span>
             </label>
             <select
               name="projectId"
               value={formData.projectId}
               onChange={handleChange}
-              style={{
-                ...styles.select,
-                borderColor: errors.projectId ? '#ef4444' : '#e5e7eb'
-              }}
               disabled={loading}
+              className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors
+                ${errors.projectId ? "border-red-400" : "border-gray-200"}`}
             >
               <option value="">Select Project</option>
               {projects.map(project => (
-                <option key={project._id} value={project._id}>
-                  {project.name}
-                </option>
+                <option key={project._id} value={project._id}>{project.name}</option>
               ))}
             </select>
-            {errors.projectId && <span style={styles.errorText}>{errors.projectId}</span>}
+            {errors.projectId && (
+              <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
+                <AlertCircle className="w-3 h-3" /> {errors.projectId}
+              </p>
+            )}
           </div>
 
-          {/* Assign To - ✅ IMPORTANT - name="assignedTo" */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>
-              Assign To <span style={styles.required}>*</span>
+          {/* Assign To */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Assign To <span className="text-red-500">*</span>
             </label>
             <select
-              name="assignedTo"  // ✅ MUST be "assignedTo"
+              name="assignedTo"
               value={formData.assignedTo}
               onChange={handleChange}
-              style={{
-                ...styles.select,
-                borderColor: errors.assignedTo ? '#ef4444' : '#e5e7eb'
-              }}
               disabled={loading}
+              className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors
+                ${errors.assignedTo ? "border-red-400" : "border-gray-200"}`}
             >
               <option value="">Select Team Member</option>
               {users.map(user => (
-                <option key={user._id} value={user._id}>
-                  {user.firstName} {user.lastName}
-                </option>
+                <option key={user._id} value={user._id}>{user.firstName} {user.lastName}</option>
               ))}
             </select>
-            {errors.assignedTo && <span style={styles.errorText}>{errors.assignedTo}</span>}
+            {errors.assignedTo && (
+              <p className="flex items-center gap-1 text-xs text-red-500 mt-1">
+                <AlertCircle className="w-3 h-3" /> {errors.assignedTo}
+              </p>
+            )}
           </div>
 
-          {/* Priority and Due Date */}
-          <div style={styles.row}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Priority</label>
+          {/* Priority + Due Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Priority</label>
               <select
                 name="priority"
                 value={formData.priority}
                 onChange={handleChange}
-                style={styles.select}
                 disabled={loading}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -199,203 +189,66 @@ const AssignTaskModal = ({ isOpen, onClose, onSubmit, projects, users }) => {
                 <option value="urgent">Urgent</option>
               </select>
             </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Due Date</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Due Date</label>
               <input
                 type="date"
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleChange}
-                style={styles.input}
-                min={new Date().toISOString().split('T')[0]}
                 disabled={loading}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
               />
             </div>
           </div>
 
           {/* Time Estimate */}
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Time Estimate (hours)</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Time Estimate (hours)</label>
             <input
               type="number"
               name="timeEstimate"
               value={formData.timeEstimate}
               onChange={handleChange}
-              style={styles.input}
               placeholder="e.g., 2.5"
               min="0"
               step="0.5"
               disabled={loading}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
             />
           </div>
 
-          {/* Preview */}
-          <div style={styles.preview}>
-            <span>Selected Priority: </span>
-            <span style={{
-              ...styles.priorityBadge,
-              backgroundColor: 
-                formData.priority === 'low' ? '#e6f7e6' :
-                formData.priority === 'medium' ? '#fff4e5' : '#ffe5e5',
-              color:
-                formData.priority === 'low' ? '#2e7d32' :
-                formData.priority === 'medium' ? '#f57c00' : '#c62828'
-            }}>
-              {formData.priority.charAt(0).toUpperCase() + formData.priority.slice(1)}
+          {/* Priority Preview */}
+          <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-4 py-3 text-sm text-gray-600">
+            <span>Selected Priority:</span>
+            <span className={`px-2 py-0.5 rounded-md text-xs font-semibold capitalize ${priorityBadgeColors[formData.priority]}`}>
+              {formData.priority}
             </span>
           </div>
 
-          {/* Buttons */}
-          <div style={styles.actions}>
-            <button type="button" onClick={onClose} style={styles.cancelBtn} disabled={loading}>
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
               Cancel
             </button>
-            <button type="submit" style={styles.submitBtn} disabled={loading}>
-              {loading ? 'Creating...' : 'Assign Task'}
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Creating..." : "Assign Task"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-};
-
-// Styles
-const styles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    padding: '20px'
-  },
-  modal: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    width: '90%',
-    maxWidth: '500px',
-    maxHeight: '90vh',
-    overflow: 'auto',
-    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '8px'
-  },
-  title: {
-    fontSize: '20px',
-    fontWeight: '600',
-    margin: 0
-  },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    fontSize: '20px',
-    cursor: 'pointer',
-    color: '#666'
-  },
-  subtitle: {
-    color: '#666',
-    marginBottom: '20px'
-  },
-  formGroup: {
-    marginBottom: '16px',
-    flex: 1
-  },
-  row: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-    marginBottom: '8px'
-  },
-  label: {
-    display: 'block',
-    marginBottom: '6px',
-    fontWeight: '500',
-    fontSize: '14px'
-  },
-  required: {
-    color: '#ef4444'
-  },
-  input: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    fontSize: '14px',
-    boxSizing: 'border-box'
-  },
-  textarea: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    fontSize: '14px',
-    fontFamily: 'inherit',
-    resize: 'vertical',
-    boxSizing: 'border-box'
-  },
-  select: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
-    fontSize: '14px',
-    backgroundColor: 'white',
-    boxSizing: 'border-box'
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: '12px',
-    marginTop: '4px',
-    display: 'block'
-  },
-  preview: {
-    marginTop: '16px',
-    padding: '12px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '6px',
-    fontSize: '14px'
-  },
-  priorityBadge: {
-    padding: '4px 8px',
-    borderRadius: '4px',
-    marginLeft: '8px',
-    fontWeight: '500'
-  },
-  actions: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    gap: '12px',
-    marginTop: '20px'
-  },
-  cancelBtn: {
-    padding: '10px 16px',
-    border: '1px solid #e5e7eb',
-    backgroundColor: 'white',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  },
-  submitBtn: {
-    padding: '10px 16px',
-    border: 'none',
-    backgroundColor: '#1f2937',
-    color: 'white',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px'
-  }
 };
 
 export default AssignTaskModal;

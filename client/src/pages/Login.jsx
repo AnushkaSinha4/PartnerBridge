@@ -74,13 +74,18 @@ const Login = () => {
         <div className="login-card">
           {/* Logo */}
           <div className="logo">
-            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <h1>Partner Bridge</h1>
+            <img
+               src="/src/assets/partnerBridgeLogo.jpeg"
+               alt="Partner Bridge Logo"
+               style={{ width: "50px", height: "50px", objectFit: "contain" }}
+            />
+          <div>
+             <h1>Partner Bridge</h1>
+             <p style={{ fontSize: "0.85rem", color: "#667eea", marginTop: "-4px" }}>
+                Powered by Kavach Cloud Enterprise
+             </p>
           </div>
+      </div>
 
           <p className="subtitle">Welcome back! Please login to your account.</p>
 
@@ -169,75 +174,39 @@ const Login = () => {
           box-sizing: border-box;
         }
 
-        .login-page {
-          min-height: 100vh;
-          width: 100%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          position: relative;
-          overflow-x: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+       .login-page {
+         min-height: 100vh;
+         width: 100%;
+         background: #f3f4f6; /* light grey background like image */
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         padding: 1rem;
+         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         /* Background Shapes */
-        .background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          overflow: hidden;
-        }
-
+        .background,
         .shape {
-          position: absolute;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 50%;
-        }
-
-        .shape-1 {
-          width: 300px;
-          height: 300px;
-          top: -150px;
-          right: -100px;
-        }
-
-        .shape-2 {
-          width: 200px;
-          height: 200px;
-          bottom: -50px;
-          left: -50px;
-        }
-
-        .shape-3 {
-          width: 150px;
-          height: 150px;
-          bottom: 30%;
-          right: 10%;
+          display: none;
         }
 
         /* Login Container */
-        .login-container {
-          width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
-          position: relative;
-          z-index: 1;
+       .login-container {
+         width: 100%;
+         max-width: 1200px;
+         margin: 0 auto;
         }
-
-        .login-card {
-          background: white;
-          border-radius: 20px;
-          padding: clamp(1.5rem, 5vw, 3rem);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-          width: 100%;
-          max-width: 500px;
-          margin: 0 auto;
-          transition: transform 0.3s ease;
-        }
+         
+       .login-card {
+         background: #ffffff;
+         border-radius: 16px;
+         padding: 2.5rem;
+         width: 100%;
+         max-width: 420px;
+         margin: 0 auto;
+         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+       }
 
         .login-card:hover {
           transform: translateY(-5px);

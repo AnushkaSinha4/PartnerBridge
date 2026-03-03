@@ -1,29 +1,27 @@
-import { useState } from 'react';
-import { taskAPI } from '../services/api';
+
+
+
+import { useState } from "react";
+import { taskAPI } from "../services/api";
+import { Calendar, User, FolderOpen, Eye, FileText } from "lucide-react";
+
+const priorityConfig = {
+  low:    { cls: "bg-green-100 text-green-700 border border-green-200",   label: "Low" },
+  medium: { cls: "bg-yellow-100 text-yellow-700 border border-yellow-200", label: "Medium" },
+  high:   { cls: "bg-orange-100 text-orange-700 border border-orange-200", label: "High" },
+  urgent: { cls: "bg-red-100 text-red-700 border border-red-200",          label: "Urgent" },
+};
+
+const statusConfig = {
+  "todo":        { cls: "bg-gray-100 text-gray-700",     label: "To Do" },
+  "in-progress": { cls: "bg-blue-100 text-blue-700",     label: "In Progress" },
+  "in-review":   { cls: "bg-yellow-100 text-yellow-800", label: "In Review" },
+  "completed":   { cls: "bg-green-100 text-green-700",   label: "Completed" },
+  "blocked":     { cls: "bg-red-100 text-red-700",       label: "Blocked" },
+};
 
 const TaskList = ({ tasks, onViewTask, onStatusChange }) => {
   const [loading, setLoading] = useState(false);
-
-  const getPriorityColor = (priority) => {
-    const colors = {
-      low: { bg: '#e6f7e6', color: '#2e7d32' },
-      medium: { bg: '#fff4e5', color: '#f57c00' },
-      high: { bg: '#ffe5e5', color: '#c62828' },
-      urgent: { bg: '#ff0000', color: 'white' }
-    };
-    return colors[priority] || colors.medium;
-  };
-
-  const getStatusColor = (status) => {
-    const colors = {
-      todo: { bg: '#f3f4f6', color: '#4b5563' },
-      'in-progress': { bg: '#fef3c7', color: '#92400e' },
-      'in-review': { bg: '#dbeafe', color: '#1e40af' },
-      completed: { bg: '#d1fae5', color: '#065f46' },
-      blocked: { bg: '#fee2e2', color: '#991b1b' }
-    };
-    return colors[status] || colors.todo;
-  };
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
@@ -31,202 +29,102 @@ const TaskList = ({ tasks, onViewTask, onStatusChange }) => {
       await taskAPI.updateTaskStatus(taskId, newStatus);
       onStatusChange?.();
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error("Error updating task status:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  if (tasks.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl py-16 flex flex-col items-center gap-3 text-gray-400">
+        <FileText className="w-10 h-10 text-gray-200" />
+        <p className="text-sm font-medium text-gray-500">No tasks found</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={styles.container}>
-      <div style={styles.taskGrid}>
-        {tasks.map((task) => (
-          <div key={task._id} style={styles.taskCard}>
-            <div style={styles.taskHeader}>
-              <h3 style={styles.taskTitle} onClick={() => onViewTask(task._id)}>
-                {task.title}
-              </h3>
-              <span style={{
-                ...styles.priorityBadge,
-                backgroundColor: getPriorityColor(task.priority).bg,
-                color: getPriorityColor(task.priority).color
-              }}>
-                {task.priority}
-              </span>
-            </div>
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
+        {tasks.map((task) => {
+          const priority = priorityConfig[task.priority] || priorityConfig.medium;
+          const status = statusConfig[task.status] || statusConfig.todo;
+          const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
 
-            <p style={styles.taskDescription}>
-              {task.description || 'No description'}
-            </p>
-
-            <div style={styles.taskMeta}>
-              <div style={styles.metaItem}>
-                <span style={styles.metaLabel}>Project:</span>
-                <span style={styles.metaValue}>{task.project?.name || 'N/A'}</span>
-              </div>
-              <div style={styles.metaItem}>
-                <span style={styles.metaLabel}>Assigned to:</span>
-                <span style={styles.metaValue}>
-                  {task.assignedTo?.firstName || 'Unassigned'} {task.assignedTo?.lastName || ''}
+          return (
+            <div
+              key={task._id}
+              className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all group"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3
+                  onClick={() => onViewTask(task._id)}
+                  className="text-sm font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors leading-snug"
+                >
+                  {task.title}
+                </h3>
+                <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${priority.cls}`}>
+                  {priority.label}
                 </span>
               </div>
-            </div>
 
-            <div style={styles.taskFooter}>
-              <select
-                value={task.status}
-                onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                style={{
-                  ...styles.statusSelect,
-                  backgroundColor: getStatusColor(task.status).bg,
-                  color: getStatusColor(task.status).color
-                }}
-                disabled={loading}
-              >
-                <option value="todo">To Do</option>
-                <option value="in-progress">In Progress</option>
-                <option value="in-review">In Review</option>
-                <option value="completed">Completed</option>
-                <option value="blocked">Blocked</option>
-              </select>
+              {/* Description */}
+              <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">
+                {task.description || "No description"}
+              </p>
 
-              <button 
-                onClick={() => onViewTask(task._id)}
-                style={styles.viewBtn}
-              >
-                View Details
-              </button>
-            </div>
-
-            {task.dueDate && (
-              <div style={styles.dueDate}>
-                📅 Due: {new Date(task.dueDate).toLocaleDateString()}
+              {/* Meta */}
+              <div className="space-y-1.5 mb-3">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <FolderOpen className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span className="truncate">{task.project?.name || "N/A"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <User className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span>{task.assignedTo?.firstName || "Unassigned"} {task.assignedTo?.lastName || ""}</span>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
 
-      {tasks.length === 0 && (
-        <div style={styles.noData}>
-          <span style={styles.noDataIcon}>📭</span>
-          <p>No tasks found</p>
-        </div>
-      )}
+              {/* Status + View */}
+              <div className="flex items-center gap-2 mb-3">
+                <select
+                  value={task.status}
+                  onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                  disabled={loading}
+                  className={`flex-1 text-xs font-semibold px-2 py-1.5 rounded-lg border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${status.cls}`}
+                >
+                  <option value="todo">To Do</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="in-review">In Review</option>
+                  <option value="completed">Completed</option>
+                  <option value="blocked">Blocked</option>
+                </select>
+
+                <button
+                  onClick={() => onViewTask(task._id)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                >
+                  <Eye className="w-3.5 h-3.5" /> View
+                </button>
+              </div>
+
+              {/* Due Date */}
+              {task.dueDate && (
+                <div className={`flex items-center gap-1.5 text-xs pt-3 border-t border-gray-200
+                  ${isOverdue ? "text-red-500" : "text-gray-400"}`}>
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                  {isOverdue && <span className="font-semibold ml-auto">Overdue</span>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
-};
-
-const styles = {
-  container: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '24px'
-  },
-  taskGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '20px'
-  },
-  taskCard: {
-    padding: '20px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-    transition: 'transform 0.2s, boxShadow 0.2s',
-    cursor: 'pointer',
-    ':hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-    }
-  },
-  taskHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '12px'
-  },
-  taskTitle: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#111827',
-    margin: 0,
-    cursor: 'pointer'
-  },
-  priorityBadge: {
-    padding: '4px 8px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '600',
-    textTransform: 'uppercase'
-  },
-  taskDescription: {
-    fontSize: '14px',
-    color: '#6b7280',
-    marginBottom: '16px',
-    lineHeight: '1.5'
-  },
-  taskMeta: {
-    marginBottom: '16px'
-  },
-  metaItem: {
-    display: 'flex',
-    marginBottom: '8px',
-    fontSize: '13px'
-  },
-  metaLabel: {
-    width: '90px',
-    color: '#6b7280'
-  },
-  metaValue: {
-    flex: 1,
-    color: '#1f2937',
-    fontWeight: '500'
-  },
-  taskFooter: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '12px'
-  },
-  statusSelect: {
-    flex: 1,
-    padding: '8px',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    outline: 'none'
-  },
-  viewBtn: {
-    padding: '8px 16px',
-    backgroundColor: '#1f2937',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    ':hover': {
-      backgroundColor: '#374151'
-    }
-  },
-  dueDate: {
-    fontSize: '12px',
-    color: '#6b7280',
-    paddingTop: '12px',
-    borderTop: '1px solid #e5e7eb'
-  },
-  noData: {
-    textAlign: 'center',
-    padding: '60px 20px',
-    color: '#9ca3af'
-  },
-  noDataIcon: {
-    fontSize: '48px',
-    display: 'block',
-    marginBottom: '12px'
-  }
 };
 
 export default TaskList;

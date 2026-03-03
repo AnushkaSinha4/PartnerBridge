@@ -1,4 +1,8 @@
+
+
+
 import { useState } from "react";
+import { X } from "lucide-react";
 
 const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -10,84 +14,103 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
   });
 
   const roles = [
-    { value: "admin", label: "Admin" },
+    { value: "admin",    label: "Admin" },
     { value: "employee", label: "Employee" },
-    { value: "client", label: "Client" },
-    { value: "partner", label: "Partner" }
+    { value: "client",   label: "Client" },
+    { value: "partner",  label: "Partner" },
   ];
 
   if (!isOpen) return null;
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.modal}>
-        <div style={styles.header}>
-          <h3 style={styles.title}>Create New User</h3>
-          <button onClick={onClose} style={styles.closeBtn}>✕</button>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900">Create New User</h3>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(formData);
-        }}>
-          <div style={styles.formGrid}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>First Name</label>
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }} className="px-6 py-5 space-y-4">
+          {/* First + Last Name */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                First Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={formData.firstName}
-                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
-                style={styles.input}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                 placeholder="John"
                 required
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
               />
             </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Last Name</label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Last Name <span className="text-red-500">*</span>
+              </label>
               <input
                 type="text"
                 value={formData.lastName}
-                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
-                style={styles.input}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 placeholder="Doe"
                 required
+                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
               />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Email</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                style={styles.input}
-                placeholder="john@example.com"
-                required
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Role</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
-                style={styles.select}
-              >
-                {roles.map(role => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 
-          <div style={styles.actions}>
-            <button type="button" onClick={onClose} style={styles.cancelBtn}>
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              placeholder="john@example.com"
+              required
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+            />
+          </div>
+
+          {/* Role */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Role</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition-colors"
+            >
+              {roles.map(role => (
+                <option key={role.value} value={role.value}>{role.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Default password note */}
+          <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+            Default password: <span className="font-mono font-semibold text-gray-600">Default@123</span>
+          </p>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               Cancel
             </button>
-            <button type="submit" style={styles.submitBtn}>
+            <button
+              type="submit"
+              className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
               Create User
             </button>
           </div>
@@ -95,102 +118,6 @@ const CreateUserModal = ({ isOpen, onClose, onSubmit }) => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000
-  },
-  modal: {
-    backgroundColor: "white",
-    borderRadius: "12px",
-    width: "90%",
-    maxWidth: "500px",
-    padding: "24px",
-    boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px"
-  },
-  title: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#111827"
-  },
-  closeBtn: {
-    background: "none",
-    border: "none",
-    fontSize: "20px",
-    cursor: "pointer",
-    color: "#6b7280"
-  },
-  formGrid: {
-    display: "grid",
-    gap: "16px",
-    marginBottom: "20px"
-  },
-  formGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px"
-  },
-  label: {
-    fontSize: "14px",
-    fontWeight: "500",
-    color: "#374151"
-  },
-  input: {
-    padding: "10px 12px",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none"
-  },
-  select: {
-    padding: "10px 12px",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    fontSize: "14px",
-    outline: "none",
-    backgroundColor: "white"
-  },
-  actions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: "12px",
-    marginTop: "24px"
-  },
-  cancelBtn: {
-    padding: "10px 16px",
-    border: "1px solid #e5e7eb",
-    backgroundColor: "white",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500"
-  },
-  submitBtn: {
-    padding: "10px 16px",
-    border: "none",
-    backgroundColor: "#1f2937",
-    color: "white",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: "500"
-  }
 };
 
 export default CreateUserModal;
