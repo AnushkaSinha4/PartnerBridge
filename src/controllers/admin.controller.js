@@ -2,7 +2,12 @@
 import { asyncHandler } from "../utils/asynchandler.js";
 import { ApiError } from "../utils/apierror.js";
 import { ApiResponse } from "../utils/apiresponse.js";
-import { User } from "../models/user.model.js";
+
+import { Admin } from "../models/admin.model.js";
+import { PartnerAccount } from "../models/partnerAccount.model.js";
+import { EmployeeAccount } from "../models/employeeAccount.model.js";
+import { ClientAccount } from "../models/clientAccount.model.js";
+
 import { Organization } from "../models/organization.model.js";
 import mongoose from "mongoose";
 
@@ -22,259 +27,121 @@ const checkOrgAccess = (reqUser, targetUser) => {
     return false;
 };
 
-/* ================= GET ALL USERS ================= */
+/* ================= CREATE PARTNER ACCOUNT ================= */
+export const createPartnerAccount = asyncHandler(async(req, res) => {
+    const { email } = req.body;
 
-export const getAllUsers = asyncHandler(async(req, res) => {
-    const {
-        page = 1,
-            limit = 10,
-            role,
-            status,
-            search,
-            sortBy = "createdAt",
-            sortOrder = "desc",
-    } = req.query;
-
-    const query = {};
-
-    if (req.user.role !== "super_admin" && req.user.organization) {
-        query.organization = req.user.organization;
+    if (!email) {
+        throw new ApiError(400, "Email is required");
     }
-
-    if (role) query.role = role;
-    if (status) query.status = status;
-
-    if (search) {
-        query.$or = [
-            { firstName: { $regex: search, $options: "i" } },
-            { lastName: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-        ];
+    const existing = await PartnerAccount.findOne({ email });
+    if (existing) {
+        throw new ApiError(409, "Partner already exists");
     }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sort = {
-        [sortBy]: sortOrder === "desc" ? -1 : 1
-    };
-
-    const users = await User.find(query)
-        .populate("organization", "name")
-        .sort(sort)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .select("-password -refreshToken");
-
-    const totalUsers = await User.countDocuments(query);
-
-    return res.status(200).json(
-        new ApiResponse(
-            200, {
-                users,
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    totalUsers,
-                    totalPages: Math.ceil(totalUsers / parseInt(limit)),
-                },
-            },
-            "Users fetched successfully"
-        )
-    );
-});
-
-/* ================= GET USER BY ID ================= */
-
-export const getUserById = asyncHandler(async(req, res) => {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new ApiError(400, "Invalid user ID");
-    }
-
-    const user = await User.findById(id)
-        .populate("organization", "name")
-        .select("-password -refreshToken");
-
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-
-    if (checkOrgAccess(req.user, user)) {
-        throw new ApiError(403, "Access denied to this user");
-    }
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, { user }, "User fetched successfully"));
-});
-
-/* ================= CREATE USER ================= */
-
-export const createUser = asyncHandler(async(req, res) => {
-    const {
-        email,
-        password,
-        firstName,
-        lastName,
-        role,
-        organizationId,
-    } = req.body;
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        throw new ApiError(409, "User with this email already exists");
-    }
-
-    let organization = organizationId;
-    if (!organization && req.user.role !== "super_admin") {
-        organization = req.user.organization;
-    }
-
-    if (organization) {
-        const orgExists = await Organization.findById(organization);
-        if (!orgExists) {
-            throw new ApiError(404, "Organization not found");
-        }
-    }
-
-    const user = await User.create({
-        email,
-        password: password || "Default@123",
-        firstName,
-        lastName,
-        role,
-        organization,
+    const partner = await PartnerAccount.create({
+        email: email.toLowerCase().trim(),
         status: "active",
-        createdBy: req.user._id,
+        createdBy: req.user._id
     });
-
-    return res
-        .status(201)
-        .json(new ApiResponse(201, { user }, "User created successfully"));
+    return res.status(201).json(
+        new ApiResponse(201, { partner }, "Partner account created"));
 });
 
-/* ================= UPDATE USER ================= */
+/* ================= CREATE EMPLOYEE ACCOUNT ================= */
+export const createEmployeeAccount = asyncHandler(async(req, res) => {
+    const { email } = req.body;
 
-export const updateUser = asyncHandler(async(req, res) => {
-    const { id } = req.params;
-    const updates = req.body;
+    if (!email) { throw new ApiError(400, "Email is required"); }
 
-    delete updates.password;
-    delete updates._id;
-    delete updates.refreshToken;
-
-    const user = await User.findById(id);
-    if (!user) {
-        throw new ApiError(404, "User not found");
+    const existing = await EmployeeAccount.findOne({ email });
+    if (existing) {
+        throw new ApiError(409, "Employee already exists");
     }
-
-    if (checkOrgAccess(req.user, user)) {
-        throw new ApiError(403, "Access denied to this user");
-    }
-
-    Object.assign(user, updates);
-    await user.save();
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, { user }, "User updated successfully"));
+    const employee = await EmployeeAccount.create({
+        email: email.toLowerCase().trim(),
+        status: "active",
+        createdBy: req.user._id
+    });
+    return res.status(201).json(
+        new ApiResponse(201, { employee }, "Employee account created"));
 });
 
-/* ================= DELETE USER ================= */
+/* ================= CREATE CLIENT ACCOUNT ================= */
+export const createClientAccount = asyncHandler(async(req, res) => {
+    const { email } = req.body;
 
-export const deleteUser = asyncHandler(async(req, res) => {
-    const { id } = req.params;
-
-    const user = await User.findById(id);
-    if (!user) {
-        throw new ApiError(404, "User not found");
+    if (!email) {
+        throw new ApiError(400, "Email is required");
     }
-
-    if (user._id.toString() === req.user._id.toString()) {
-        throw new ApiError(400, "You cannot delete your own account");
+    const existing = await ClientAccount.findOne({ email });
+    if (existing) {
+        throw new ApiError(409, "Client already exists");
     }
-
-    if (checkOrgAccess(req.user, user)) {
-        throw new ApiError(403, "Access denied to this user");
-    }
-
-    user.status = "inactive";
-    await user.save();
-
-    return res
-        .status(200)
-        .json(new ApiResponse(200, {}, "User deleted successfully"));
-});
-
-/* ================= UPDATE USER STATUS ================= */
-
-export const updateUserStatus = asyncHandler(async(req, res) => {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!["active", "inactive", "suspended"].includes(status)) {
-        throw new ApiError(400, "Invalid status value");
-    }
-
-    const user = await User.findById(id);
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
-
-    if (checkOrgAccess(req.user, user)) {
-        throw new ApiError(403, "Access denied to this user");
-    }
-
-    user.status = status;
-    await user.save();
-
-    return res.status(200).json(
-        new ApiResponse(200, { user }, "User status updated successfully")
-    );
+    const client = await ClientAccount.create({
+        email: email.toLowerCase().trim(),
+        status: "active",
+        createdBy: req.user._id
+    });
+    return res.status(201).json(
+        new ApiResponse(201, { client }, "Client account created"));
 });
 
 /* ================= GET PARTNERS ================= */
-
 export const getPartners = asyncHandler(async(req, res) => {
-    const query = { role: "partner" };
-
-    if (req.user.role !== "super_admin" && req.user.organization) {
-        query.organization = req.user.organization;
-    }
-
-    const partners = await User.find(query)
-        .populate("organization", "name")
-        .select("-password -refreshToken");
-
+    const partners = await PartnerAccount.find().select("-refreshToken");
     return res.status(200).json(
         new ApiResponse(200, { partners }, "Partners fetched successfully")
     );
 });
 
-/* ================= UPDATE PARTNER TIER ================= */
+/* ================= GET EMPLOYEES ================= */
+export const getEmployees = asyncHandler(async(req, res) => {
+    const employees = await EmployeeAccount.find().select("-refreshToken");
+    return res.status(200).json(
+        new ApiResponse(200, { employees }, "Employees fetched successfully"));
+});
 
+/* ================= GET CLIENTS ================= */
+export const getClients = asyncHandler(async(req, res) => {
+    const clients = await ClientAccount.find().select("-refreshToken");
+    return res.status(200).json(
+        new ApiResponse(200, { clients }, "Clients fetched successfully"));
+});
+
+/* ================= UPDATE PARTNER STATUS ================= */
+export const updatePartnerStatus = asyncHandler(async(req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "inactive", "suspended"].includes(status)) {
+        throw new ApiError(400, "Invalid status");
+    }
+    const partner = await PartnerAccount.findById(id);
+    if (!partner) {
+        throw new ApiError(404, "Partner not found");
+    }
+    partner.status = status;
+    await partner.save();
+    return res.status(200).json(new ApiResponse(200, { partner }, "Partner status updated"));
+});
+
+/* ================= UPDATE PARTNER TIER ================= */
 export const updatePartnerTier = asyncHandler(async(req, res) => {
     const { id } = req.params;
     const { partnerTier, commissionRate } = req.body;
-
-    const partner = await User.findOne({ _id: id, role: "partner" });
+    const partner = await PartnerAccount.findById(id);
 
     if (!partner) {
         throw new ApiError(404, "Partner not found");
     }
-
     partner.partnerTier = partnerTier;
     if (commissionRate !== undefined) {
         partner.commissionRate = commissionRate;
     }
-
     await partner.save();
-
     return res.status(200).json(
-        new ApiResponse(200, { partner }, "Partner updated successfully")
-    );
+        new ApiResponse(200, { partner }, "Partner updated successfully"));
 });
-
 
 /* ================= VERIFY PARTNER KYC ================= */
 

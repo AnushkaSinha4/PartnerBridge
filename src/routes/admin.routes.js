@@ -3,13 +3,13 @@ import { Router } from "express";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 import { isAdmin } from "../middleware/rbac.middleware.js";
 import {
-    getAllUsers,
-    getUserById,
-    createUser,
-    updateUser,
-    deleteUser,
-    updateUserStatus,
+    createPartnerAccount,
+    createEmployeeAccount,
+    createClientAccount,
     getPartners,
+    getEmployees,
+    getClients,
+    updatePartnerStatus,
     updatePartnerTier,
     verifyPartnerKYC
 } from "../controllers/admin.controller.js";
@@ -20,21 +20,22 @@ const router = Router();
 router.use(verifyJWT);
 router.use(isAdmin);
 
-// User management
-router.route("/users")
-    .get(getAllUsers)
-    .post(createUser);
+/* ================= CREATE ACCOUNTS ================= */
+router.post("/create-partner", createPartnerAccount);
+router.post("/create-employee", createEmployeeAccount);
+router.post("/create-client", createClientAccount);
 
-router.route("/users/:id")
-    .get(getUserById)
-    .put(updateUser)
-    .delete(deleteUser);
-
-router.patch("/users/:id/status", updateUserStatus);
-
-// Partner management
+/* ================= GET ACCOUNTS ================= */
 router.get("/partners", getPartners);
+router.get("/employees", getEmployees);
+router.get("/clients", getClients);
+
+/* ================= PARTNER MANAGEMENT ================= */
+router.patch("/partners/:id/status", updatePartnerStatus);
 router.patch("/partners/:id/tier", updatePartnerTier);
 router.patch("/partners/:id/kyc", verifyPartnerKYC);
+
+/* ================= PARTNER ONBOARDING APPROVAL ================= */
+router.patch("/partners/onboarding/:id/status", updatePartnerStatus);
 
 export default router;

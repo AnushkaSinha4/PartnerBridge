@@ -1,6 +1,7 @@
-// src/pages/Login.jsx
+
 import { useState } from "react";
 import axios from "axios";
+// import api from "../utils/api"
 import { useNavigate } from "react-router-dom";
 
 
@@ -8,29 +9,54 @@ const API_URL = "http://localhost:5000/api/v1";
 
 const Login = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  /* SEND OTP */
+
+  const sendOtp = async () => {
     setError("");
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${API_URL}/auth/login`,
-        { 
-          email: email.trim(), 
-          password: password.trim() 
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+       await axios.post(
+         "http://localhost:5000/api/v1/auth/send-otp",
+         { email: email.trim() },
+         { withCredentials: true }
+      );
+
+      setOtpSent(true);
+    } catch (err) {
+      if (err.code === "ERR_NETWORK") {
+        setError("Cannot connect to server. Please try again.");
+      } else {
+        setError(err.response?.data?.message || "Failed to send OTP");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* VERIFY OTP */
+
+  const handleSubmit = async (e) => {
+    if(e) e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+     const response = await axios.post(
+       "http://localhost:5000/api/v1/auth/verify-otp",
+         {
+            email: email.trim(),
+            otp: otp.trim()
+         },
+         { withCredentials: true }
       );
 
       const { user, tokens } = response.data.data;
@@ -39,10 +65,11 @@ const Login = () => {
       localStorage.setItem("role", user.role);
 
       const routes = {
-        admin: "/admin",
-        employee: "/employee",
-        client: "/client",
-        partner: "/partner",
+        super_admin: "/super-admin/dashboard",
+        admin: "/admin/dashboard",
+        employee: "/employee/dashboard",
+        client: "/client/dashboard",
+        partner: "/partner/dashboard",
       };
 
       navigate(routes[user.role] || "/");
@@ -51,7 +78,7 @@ const Login = () => {
       if (err.code === "ERR_NETWORK") {
         setError("Cannot connect to server. Please try again.");
       } else if (err.response?.status === 401) {
-        setError("Invalid email or password");
+        setError("Invalid OTP");
       } else {
         setError(err.response?.data?.message || "Login failed");
       }
@@ -74,13 +101,18 @@ const Login = () => {
         <div className="login-card">
           {/* Logo */}
           <div className="logo">
-            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 17L12 22L22 17" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="#667eea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <h1>Partner Bridge</h1>
+            <img
+               src="/src/assets/partnerBridgeLogo.jpeg"
+               alt="Partner Bridge Logo"
+               style={{ width: "50px", height: "50px", objectFit: "contain" }}
+            />
+          <div>
+             <h1>Partner Bridge</h1>
+             <p style={{ fontSize: "0.85rem", color: "#667eea", marginTop: "-4px" }}>
+                By Kavach Cloud Enterprise
+             </p>
           </div>
+      </div>
 
           <p className="subtitle">Welcome back! Please login to your account.</p>
 
@@ -97,61 +129,63 @@ const Login = () => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="login-form">
+           <form onSubmit={handleSubmit} className="login-form">
+
+            {/* EMAIL */}
+
             <div className="form-group">
-              <label htmlFor="email">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                Email
-              </label>
+              <label>Email</label>
               <input
                 type="email"
-                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
                 disabled={loading}
-                className={error ? "error" : ""}
               />
             </div>
+
+            {/* OTP */}
 
             <div className="form-group">
-              <label htmlFor="password">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Password
-              </label>
+              <label>OTP</label>
               <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter OTP"
                 required
-                disabled={loading}
-                className={error ? "error" : ""}
+                disabled={!otpSent || loading}
               />
             </div>
 
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="login-button"
-            >
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Logging in...
-                </>
-              ) : (
-                "Login"
-              )}
+            {/* BUTTONS */}
+
+          <div style={{display:"flex",gap:"10px"}}>
+
+           <button
+           type="button"
+           className="login-button"
+           onClick={sendOtp}
+           disabled={loading}
+           >
+           {loading ? "Sending..." : "Send OTP"}
+
             </button>
+ 
+            {/* LOGIN BUTTON */}
+
+            <button
+            type="button"
+            className="login-button"
+            onClick={handleSubmit}
+            disabled={!otpSent || loading}
+            >
+
+            {loading ? "Verifying..." : "Verify & Login"}
+
+            </button>
+          </div>
           </form>
 
           
@@ -169,75 +203,39 @@ const Login = () => {
           box-sizing: border-box;
         }
 
-        .login-page {
-          min-height: 100vh;
-          width: 100%;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          position: relative;
-          overflow-x: hidden;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+       .login-page {
+         min-height: 100vh;
+         width: 100%;
+         background: #f3f4f6; /* light grey background like image */
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         padding: 1rem;
+         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         /* Background Shapes */
-        .background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          overflow: hidden;
-        }
-
+        .background,
         .shape {
-          position: absolute;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 50%;
-        }
-
-        .shape-1 {
-          width: 300px;
-          height: 300px;
-          top: -150px;
-          right: -100px;
-        }
-
-        .shape-2 {
-          width: 200px;
-          height: 200px;
-          bottom: -50px;
-          left: -50px;
-        }
-
-        .shape-3 {
-          width: 150px;
-          height: 150px;
-          bottom: 30%;
-          right: 10%;
+          display: none;
         }
 
         /* Login Container */
-        .login-container {
-          width: 100%;
-          max-width: 1200px;
-          margin: 0 auto;
-          position: relative;
-          z-index: 1;
+       .login-container {
+         width: 100%;
+         max-width: 1200px;
+         margin: 0 auto;
         }
-
-        .login-card {
-          background: white;
-          border-radius: 20px;
-          padding: clamp(1.5rem, 5vw, 3rem);
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-          width: 100%;
-          max-width: 500px;
-          margin: 0 auto;
-          transition: transform 0.3s ease;
-        }
+         
+       .login-card {
+         background: #ffffff;
+         border-radius: 16px;
+         padding: 2.5rem;
+         width: 100%;
+         max-width: 420px;
+         margin: 0 auto;
+         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+       }
 
         .login-card:hover {
           transform: translateY(-5px);

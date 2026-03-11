@@ -133,4 +133,56 @@ export const taskAPI = {
     getTasksByUser: (userId, params) => api.get(`/tasks/user/${userId}`, { params }),
 };
 
+// ===== EMPLOYEE APIS (ADD AT THE END OF FILE) =====
+export const employeeAPI = {
+        // Dashboard
+        getDashboard: () => api.get("/employee/dashboard"),
+        getStats: () => api.get("/employee/stats"),
+
+        // Tasks (Kanban)
+        getMyTasks: (filters = {}) => {
+                const params = new URLSearchParams();
+                if (filters.status) params.append("status", filters.status);
+                if (filters.priority) params.append("priority", filters.priority);
+                if (filters.projectId) params.append("projectId", filters.projectId);
+                if (filters.search) params.append("search", filters.search);
+
+                const queryString = params.toString();
+                return api.get(`/employee/tasks${queryString ? `?${queryString}` : ""}`);
+  },
+  
+  updateTaskStatus: (taskId, status) => 
+    api.patch(`/employee/tasks/${taskId}/status`, { status }),
+
+  // Projects
+  getMyProjects: (page = 1, limit = 10, status = "") => {
+    let url = `/employee/projects?page=${page}&limit=${limit}`;
+    if (status) url += `&status=${status}`;
+    return api.get(url);
+  },
+  
+  getProjectDetails: (projectId) => 
+    api.get(`/employee/projects/${projectId}`),
+
+  // Deliverables
+  uploadDeliverable: (projectId, fileData, taskId = null) => {
+    const url = taskId 
+      ? `/employee/projects/${projectId}/tasks/${taskId}/deliverables`
+      : `/employee/projects/${projectId}/deliverables`;
+    return api.post(url, fileData);
+  }
+};
+
+// ===== PARTNER ONBOARDING =====
+
+export const partnerOnboardingAPI = {
+
+  submitForm: (data) =>
+    api.post("/partners/onboarding", data),
+
+  getStatus: () =>
+    api.get("/partners/me")
+
+};
+
 export default api;
