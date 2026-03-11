@@ -47,6 +47,7 @@ import projectRoutes from "./routes/project.routes.js";
 import taskRoutes from "./routes/task.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import employeeRoutes from "./routes/employee.routes.js";
+import partnerRoutes from "./routes/partner.routes.js";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRoutes);
@@ -56,6 +57,7 @@ app.use("/api/v1/tasks", taskRoutes);
 app.use("/api/v1/users", userRoutes);
 
 app.use("/api/v1/employee", employeeRoutes);
+app.use("/api/v1/partners", partnerRoutes);
 
 
 

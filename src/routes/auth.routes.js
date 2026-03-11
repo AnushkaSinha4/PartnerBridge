@@ -1,8 +1,7 @@
-// src/routes/auth.routes.js
 import { Router } from "express";
-import { 
-    register,
-    login,
+import {
+    sendOtp,
+    verifyOtp,
     logout,
     refreshAccessToken,
     getCurrentUser
@@ -11,13 +10,27 @@ import { verifyJWT } from "../middleware/auth.middleware.js";
 
 const router = Router();
 
-// Public routes
-router.post("/register", register);
-router.post("/login", login);
+/* ================= PUBLIC ROUTES ================= */
+
+// Register user (admin/client creation etc.)
+// router.post("/register", register);
+
+// Send OTP to email
+router.post("/send-otp", sendOtp);
+
+// Verify OTP and login
+router.post("/verify-otp", verifyOtp);
+
+// Refresh token
 router.post("/refresh-token", refreshAccessToken);
 
-// Protected routes
+
+/* ================= PROTECTED ROUTES ================= */
+
+// Logout
 router.post("/logout", verifyJWT, logout);
+
+// Get current logged in user
 router.get("/me", verifyJWT, getCurrentUser);
 
 export default router;

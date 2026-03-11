@@ -7,7 +7,7 @@ import {
   LayoutDashboard, ShoppingCart, Users, MessageSquare,
   FolderOpen, CheckSquare, Star, BarChart2, FileText,
   LogOut, Zap, ChevronLeft, ChevronRight,
-  FolderKanban, ClipboardList, Folders,
+  FolderKanban, ClipboardList, Folders, Handshake
 } from "lucide-react";
 import partnerBridgeLogo from "../assets/partnerBridgeLogo.jpeg"
 
@@ -34,23 +34,41 @@ const Sidebar = () => {
 
   const role = localStorage.getItem("role") || "admin";
   const isEmployee = role === "employee";
+  const isPartner = role ==="partner";
 
   const mainMenuItems = [
-    { path: `/${role}/dashboard`,  icon: LayoutDashboard, label: "Dashboard" },
-    ...(!isEmployee ? [{ path: `/${role}/ecommerce`, icon: ShoppingCart, label: "E-commerce" }] : []),
-    { path: `/${role}/users`,     icon: Users,         label: "Users" },
-    // { path: `/${role}/support`,   icon: MessageSquare, label: "Support" },
-    // { path: `/${role}/projects`,  icon: FolderOpen,    label: "Projects" },
-  ];
 
-  const projectMenuItems = [
-    { path: `/${role}/tasks`,           icon: CheckSquare,   label: isEmployee ? "My Tasks" : "To Do" },
-    // { path: `/${role}/all-projects`,    icon: Folders,       label: "All Projects" },
-    // { path: `/${role}/my-projects`,     icon: Star,          label: "My Projects" },
-    // ...(!isEmployee ? [{ path: `/${role}/project-summary`, icon: BarChart2, label: "Project Summary" }] : []),
-    // { path: `/${role}/my-tasks`,        icon: ClipboardList, label: "My Tasks" },
-    // { path: `/${role}/all-files`,       icon: FileText,      label: "All Files" },
+    { path: `/${role}/dashboard`, icon: LayoutDashboard, label: "Dashboard" },
+
+    ...(role === "admin"
+      ? [
+          { path: "/admin/users", icon: Users, label: "Users" },
+          { path: "/admin/partners", icon: Handshake, label: "Partners" },
+          { path: "/admin/invoices", icon: FileText, label: "Invoices" }
+        ]
+      : []),
+
+    ...(role === "employee"
+      ? [
+          { path: "/employee/tasks", icon: CheckSquare, label: "My Tasks" },
+          { path: "/employee/projects", icon: FolderOpen, label: "Projects" }
+        ]
+      : []),
+
+    ...(role === "partner"
+      ? [
+          { path: "/partner/leads", icon: FolderKanban, label: "Leads" },
+          { path: "/partner/deals", icon: ClipboardList, label: "Deals" },
+          { path: "/partner/commissions", icon: BarChart2, label: "Commissions" }
+        ]
+      : [])
   ];
+  
+  const projectMenuItems = role === "employee"
+  ? [
+      { path: "/employee/tasks", icon: CheckSquare, label: "My Tasks" }
+    ]
+  : [];
 
   const NavItem = ({ path, icon: Icon, label }) => (
     <NavLink
