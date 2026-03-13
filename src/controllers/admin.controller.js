@@ -40,6 +40,7 @@ export const createPartnerAccount = asyncHandler(async(req, res) => {
     }
     const partner = await PartnerAccount.create({
         email: email.toLowerCase().trim(),
+        role: "partner",
         status: "active",
         createdBy: req.user._id
     });
@@ -59,6 +60,7 @@ export const createEmployeeAccount = asyncHandler(async(req, res) => {
     }
     const employee = await EmployeeAccount.create({
         email: email.toLowerCase().trim(),
+        role: "employee",
         status: "active",
         createdBy: req.user._id
     });
@@ -79,6 +81,7 @@ export const createClientAccount = asyncHandler(async(req, res) => {
     }
     const client = await ClientAccount.create({
         email: email.toLowerCase().trim(),
+        role: "client",
         status: "active",
         createdBy: req.user._id
     });
@@ -153,7 +156,7 @@ export const verifyPartnerKYC = asyncHandler(async(req, res) => {
         throw new ApiError(400, "Invalid KYC status");
     }
 
-    const partner = await User.findOne({ _id: id, role: "partner" });
+    const partner = await PartnerAccount.findById(id);
 
     if (!partner) {
         throw new ApiError(404, "Partner not found");

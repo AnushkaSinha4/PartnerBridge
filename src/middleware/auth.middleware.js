@@ -51,9 +51,13 @@ export const verifyJWT = asyncHandler(async(req, res, next) => {
             );
         }
 
+        console.log("ROLE FROM TOKEN:", decodedToken.role);
+        console.log("ROLE FROM DB:", user.role);
+
         req.user = {
             _id: user._id,
-            role: user.role || "admin",
+            email: user.email,
+            role: decodedToken.role || user.role,
             organization: user.organization
         };
 

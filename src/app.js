@@ -44,6 +44,7 @@ app.use(cookieParser());
 import authRoutes from "./routes/auth.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import projectRoutes from "./routes/project.routes.js";
+
 import taskRoutes from "./routes/task.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import employeeRoutes from "./routes/employee.routes.js";

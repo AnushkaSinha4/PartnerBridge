@@ -69,7 +69,7 @@ const Login = () => {
         admin: "/admin/dashboard",
         employee: "/employee/dashboard",
         client: "/client/dashboard",
-        partner: "/partner/dashboard",
+        partner: "/partner",
       };
 
       navigate(routes[user.role] || "/");
