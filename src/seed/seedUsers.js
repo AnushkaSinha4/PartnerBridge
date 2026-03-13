@@ -47,6 +47,14 @@ const seedUsers = async() => {
                 partnerTier: "silver",
                 commissionRate: 10,
             },
+            {
+                firstName: "Partner",
+                lastName: "User",
+                email: "partner@yopmail.com",
+                password: "123456",
+                role: "partner",
+                status: "active"
+            }
         ];
 
         await User.create(users);

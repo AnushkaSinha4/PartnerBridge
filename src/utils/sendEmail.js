@@ -10,6 +10,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+
 /* ================= SEND OTP EMAIL ================= */
 
 export const sendOtpEmail = async(email, otp) => {
@@ -48,7 +49,29 @@ export const sendOtpEmail = async(email, otp) => {
     } catch (error) {
 
         console.error("Error sending OTP email:", error);
+        throw new Error("Email sending failed");
 
+    }
+
+};
+
+
+/* ================= GENERIC EMAIL FUNCTION ================= */
+
+export const sendEmail = async(to, subject, text) => {
+
+    try {
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: to,
+            subject: subject,
+            text: text
+        });
+
+    } catch (error) {
+
+        console.error("Error sending email:", error);
         throw new Error("Email sending failed");
 
     }

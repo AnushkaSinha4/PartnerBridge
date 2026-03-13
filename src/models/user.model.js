@@ -50,16 +50,20 @@ const userSchema = new mongoose.Schema({
     },
 
     /* ================= TOKENS ================= */
+    refreshToken: {
+        type: String,
+    },
 
-    refreshToken: String,
-
-    lastLoginAt: Date,
+    lastLoginAt: {
+        type: Date,
+    }
 
 }, { timestamps: true });
 
 /* ================= METHODS ================= */
 
 userSchema.methods.generateAccessToken = function() {
+
     return jwt.sign({
             _id: this._id,
             email: this.email,
@@ -68,15 +72,20 @@ userSchema.methods.generateAccessToken = function() {
         },
         process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1d" }
     );
+
 };
 
+
 userSchema.methods.generateRefreshToken = function() {
+
     return jwt.sign({ _id: this._id },
         process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" }
     );
+
 };
 
 userSchema.methods.getSanitizedUser = function() {
+
     return {
         _id: this._id,
         email: this.email,
@@ -86,6 +95,8 @@ userSchema.methods.getSanitizedUser = function() {
         organization: this.organization,
         status: this.status,
     };
+
 };
+
 
 export const User = mongoose.model("User", userSchema);
