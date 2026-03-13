@@ -82,7 +82,7 @@ const Login = () => {
           <div>
              <h1>Partner Bridge</h1>
              <p style={{ fontSize: "0.85rem", color: "#667eea", marginTop: "-4px" }}>
-                Powered by Kavach Cloud Enterprise
+                 by Kavach Cloud Enterprises
              </p>
           </div>
       </div>
