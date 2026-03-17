@@ -377,7 +377,6 @@ const AdminPartners = () => {
               </div>
 
             </form>
-
           </div>
 
         </div>

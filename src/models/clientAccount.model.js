@@ -11,6 +11,11 @@ const clientAccountSchema = new mongoose.Schema({
     firstName: String,
     lastName: String,
 
+    role: {
+        type: String,
+        default: "client"
+    },
+
     status: {
         type: String,
         default: "active"
@@ -24,4 +29,4 @@ const clientAccountSchema = new mongoose.Schema({
 
 }, { timestamps: true })
 
-export const ClientAccount = mongoose.model("ClientAccouont", clientAccountSchema);
+export const ClientAccount = mongoose.model("ClientAccount", clientAccountSchema);

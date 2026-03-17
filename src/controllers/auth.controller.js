@@ -25,11 +25,18 @@ const findUserByEmail = async(email) => {
 };
 
 /* ================= GENERATE TOKENS ================= */
-const generateTokens = async(user) => {
-    const accessToken = jwt.sign({ _id: user._id, email: user.email, role: user.role }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1d" });
-    const refreshToken = jwt.sign({ _id: user._id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
+const generateTokens = async(user, role) => {
+    const accessToken = jwt.sign({ _id: user._id, email: user.email, role },
+        process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1d" }
+    );
+
+    const refreshToken = jwt.sign({ _id: user._id },
+        process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" }
+    );
+
     user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
+
     return { accessToken, refreshToken };
 };
 
@@ -114,7 +121,7 @@ export const verifyOtp = asyncHandler(async(req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    const tokens = await generateTokens(user);
+    const tokens = await generateTokens(user, role);
 
     let organization = null;
     if (user.organization) {
@@ -233,7 +240,7 @@ export const refreshAccessToken = asyncHandler(async(req, res) => {
 
 export const getCurrentUser = asyncHandler(async(req, res) => {
 
-    const { role, userId } = req.user;
+    const { _id, role } = req.user;
 
     let Model;
 

@@ -11,6 +11,11 @@ const employeeAccountSchema = new mongoose.Schema({
     firstName: String,
     lastName: String,
 
+    role: {
+        type: String,
+        default: "employee"
+    },
+
     status: {
         type: String,
         default: "active"

@@ -112,7 +112,7 @@ await axios.post(
 API,
 {
 ...form,
-invoiceNumber: Number(form.invoiceNumber),
+invoiceNumber: form.invoiceNumber,
 totalAmount: total
 },
 {
