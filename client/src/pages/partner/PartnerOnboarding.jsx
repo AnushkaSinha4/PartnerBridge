@@ -21,13 +21,30 @@ export default function PartnerOnboarding() {
     contactEmail: "",
     contactPhone: "",
     preferredContactMethod: "",
+    gstNumber: "",
+    panNumber: "",
+    bankAccountNumber: "",
+    ifscCode: "",
+    aadhaarFront: null,
+    aadhaarBack: null,
+    passportPhoto: null,
   });
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value, files } = e.target;
+
+    // ✅ file handling
+    if (files) {
+      setForm({
+        ...form,
+        [name]: files[0],
+      });
+    } else {
+      setForm({
+        ...form,
+        [name]: value,
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -35,13 +52,24 @@ export default function PartnerOnboarding() {
 
     try {
 
-      await api.post("/partners/onboarding", form);
+      // ✅ IMPORTANT: formData for file upload
+      const formData = new FormData();
+
+      Object.keys(form).forEach((key) => {
+        formData.append(key, form[key]);
+      });
+
+      await api.post("/partners/onboarding", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       navigate("/partner/awaiting-approval");
 
     } catch (error) {
-        console.log("Onboarding error:", error.response?.data || error.message);
-        alert(error.response?.data?.message || "Onboarding failed");
+      console.log("Onboarding error:", error.response?.data || error.message);
+      alert(error.response?.data?.message || "Onboarding failed");
     }
   };
 
@@ -75,7 +103,6 @@ export default function PartnerOnboarding() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-10">
-
           {/* Company Info */}
           <div>
 
@@ -249,6 +276,37 @@ export default function PartnerOnboarding() {
 
             </div>
 
+          </div>
+
+          {/* BUSINESS DETAILS */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              Business Details
+            </h3>
+
+            <div className="grid grid-cols-2 gap-6">
+
+              <input name="gstNumber" placeholder="GST Number" onChange={handleChange} className={inputStyle} />
+              <input name="panNumber" placeholder="PAN Number" onChange={handleChange} className={inputStyle} />
+              <input name="bankAccountNumber" placeholder="Bank Account" onChange={handleChange} className={inputStyle} />
+              <input name="ifscCode" placeholder="IFSC Code" onChange={handleChange} className={inputStyle} />
+
+            </div>
+          </div>
+
+           {/* DOCUMENT UPLOAD */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              Document Upload
+            </h3>
+
+            <div className="grid grid-cols-2 gap-6">
+
+              <input type="file" name="aadhaarFront" onChange={handleChange} />
+              <input type="file" name="aadhaarBack" onChange={handleChange} />
+              <input type="file" name="passportPhoto" onChange={handleChange} />
+
+            </div>
           </div>
 
           {/* Submit */}

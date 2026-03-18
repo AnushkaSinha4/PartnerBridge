@@ -28,13 +28,56 @@ export const submitPartnerForm = async(req, res) => {
             });
         }
 
+        // ✅ FILE PATHS (if uploaded)
+        const aadhaarFront =
+            req.files && req.files.aadhaarFront ?
+            req.files.aadhaarFront[0].path :
+            "";
+
+        const aadhaarBack =
+            req.files && req.files.aadhaarBack ?
+            req.files.aadhaarBack[0].path :
+            "";
+
+        const passportPhoto =
+            req.files && req.files.passportPhoto ?
+            req.files.passportPhoto[0].path :
+            "";
         const partner = await Partner.create({
+
             userId: req.user._id,
+
+            /* COMPANY */
             companyName: req.body.companyName,
             businessType: req.body.businessType,
+            employeeCount: req.body.employeeCount,
+            yearOfEstablishment: req.body.yearOfEstablishment,
+            website: req.body.website,
+            linkedinUrl: req.body.linkedinUrl,
+            portfolioUrl: req.body.portfolioUrl,
+            estimatedRevenue: req.body.estimatedRevenue,
+
+            /* CONTACT */
+            contactName: req.body.contactName,
+            contactRole: req.body.contactRole,
             contactEmail: req.body.contactEmail,
-            status: "in_review"
+            contactPhone: req.body.contactPhone,
+            preferredContactMethod: req.body.preferredContactMethod,
+
+            /* BUSINESS DETAILS */
+            gstNumber: req.body.gstNumber,
+            panNumber: req.body.panNumber,
+            bankAccountNumber: req.body.bankAccountNumber,
+            ifscCode: req.body.ifscCode,
+
+            /* FILES */
+            aadhaarFront,
+            aadhaarBack,
+            passportPhoto,
+
+            status: "in_review",
         });
+
 
         res.status(201).json({
             success: true,

@@ -1,14 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { MoreHorizontal } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const AdminPartners = () => {
+  const navigate = useNavigate();
 
   const [partners, setPartners] = useState([]);
   const [search, setSearch] = useState("");
   const [activeMenu, setActiveMenu] = useState(null);
   const [showModal, setShowModal] = useState(false);
-
   const [formData, setFormData] = useState({
     email: ""
   });
@@ -20,9 +21,7 @@ const AdminPartners = () => {
   const fetchPartners = async () => {
 
     try {
-
       const token = localStorage.getItem("token");
-
       const res = await axios.get(
         "http://localhost:5000/api/v1/partners/admin/all",
         {
@@ -35,21 +34,16 @@ const AdminPartners = () => {
      setPartners(res.data.data || []);
 
     } catch (err) {
-
       console.log(err.response?.data || err.message);
-
     }
-
   };
 
   /* ================= CREATE PARTNER ================= */
 
   const createPartner = async (e) => {
-
     e.preventDefault();
 
     try {
-
       const token = localStorage.getItem("token");
 
       await axios.post(
@@ -66,11 +60,8 @@ const AdminPartners = () => {
       setFormData({ email: "" });
 
       // fetchPartners();
-
     } catch (err) {
-
       alert(err.response?.data?.message || "Partner creation failed");
-
     }
 
   };
@@ -89,9 +80,7 @@ const AdminPartners = () => {
   /* ================= UPDATE STATUS ================= */
 
   const updateStatus = async (id, status) => {
-
     try {
-
       const token = localStorage.getItem("token");
 
       await axios.put(
@@ -107,9 +96,7 @@ const AdminPartners = () => {
       fetchPartners();
 
     } catch (err) {
-
       alert(err.response?.data?.message || "Status update failed");
-
     }
 
   };
@@ -121,13 +108,9 @@ const AdminPartners = () => {
     fetchPartners();
 
     const handleClickOutside = (e) => {
-
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-
-        setActiveMenu(null);
-
+       setActiveMenu(null);
       }
-
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -183,11 +166,9 @@ const AdminPartners = () => {
       </div>
 
       {/* CARD */}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
 
         {/* SEARCH */}
-
         <div className="flex justify-between items-center px-6 py-5 border-b bg-gray-50">
 
           <div className="relative w-96">
@@ -225,6 +206,7 @@ const AdminPartners = () => {
                 <th className="px-6 py-4">Company</th>
                 <th className="px-6 py-4">Business Type</th>
                 <th className="px-6 py-4">Contact Email</th>
+                <th className="px-6 py-4">Preview</th> 
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
 
@@ -251,7 +233,15 @@ const AdminPartners = () => {
                   </td>
 
                   <td className="px-6 py-5">
+                    <button
+                      onClick={() => navigate(`/admin/partners/${partner._id}`)}
+                      className="text-blue-600 hover:underline text-sm font-medium"
+                    >
+                      View
+                    </button>
+                  </td>
 
+                  <td className="px-6 py-5">
                     <span
                       className={`px-3 py-1 text-xs rounded-full font-medium
                       ${
@@ -264,7 +254,6 @@ const AdminPartners = () => {
                     >
                       {partner.status}
                     </span>
-
                   </td>
 
                   <td className="px-6 py-5 text-right relative">
@@ -315,23 +304,14 @@ const AdminPartners = () => {
                         >
                           In Review
                         </button>
-
                       </div>
-
                     )}
-
                   </td>
-
                 </tr>
-
               ))}
-
             </tbody>
-
           </table>
-
         </div>
-
       </div>
 
       {/* CREATE PARTNER MODAL */}

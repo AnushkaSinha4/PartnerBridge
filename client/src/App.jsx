@@ -13,6 +13,7 @@ import Employee from "./pages/admin/Employee.jsx";
 
 /* ADMIN PARTNER APPROVAL */
 import AdminPartners from "./pages/admin/AdminPartners.jsx";
+import PartnerDetails from "./pages/admin/PartnerDetails.jsx";
 
 /* EMPLOYEE PAGES */
 import EmployeeDashboard from "./pages/employee/EmployeeDashboard.jsx";
@@ -33,7 +34,6 @@ import PartnerOnboarding from "./pages/partner/PartnerOnboarding.jsx";
 import AwaitingApproval from "./pages/partner/AwaitingApproval.jsx";
 import PartnerRouter from "./pages/partner/PartnerRouter.jsx";
 import PartnerDashboard from "./pages/partner/PartnerDashboard.jsx";
-
 
 /* ================= PROTECTED ROUTE ================= */
 
@@ -64,7 +64,6 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   return children;
 };
-
 
 function App() {
 
@@ -103,6 +102,16 @@ function App() {
               <AdminLayout>
                 <AdminPartners />
               </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/partners/:id"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+             <AdminLayout>
+               <PartnerDetails />
+             </AdminLayout>
             </ProtectedRoute>
           }
         />
@@ -265,14 +274,16 @@ function App() {
           }
         />
 
-        <Route
-          path="/partner/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["partner"]}>
-              <PartnerDashboard />
-            </ProtectedRoute>
-          }
-        />
+       <Route
+         path="/partner/dashboard"
+         element={
+           <ProtectedRoute allowedRoles={["partner"]}>
+             <AdminLayout>
+               <PartnerDashboard />
+             </AdminLayout>
+           </ProtectedRoute>
+         }
+       />
 
         {/* DEFAULT */}
         <Route path="/" element={<Navigate to="/login" replace />} />

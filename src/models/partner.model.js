@@ -61,6 +61,27 @@ const partnerSchema = new mongoose.Schema({
         enum: ["email", "phone"]
     },
 
+    /* ================= BUSINESS DETAILS ================= */
+
+    gstNumber: String,
+    panNumber: String,
+    bankAccountNumber: String,
+    ifscCode: String,
+
+    /* ================= DOCUMENTS ================= */
+
+    aadhaarFront: {
+        type: String // file path / URL
+    },
+
+    aadhaarBack: {
+        type: String
+    },
+
+    passportPhoto: {
+        type: String
+    },
+
     status: {
         type: String,
         enum: ["in_review", "approved", "rejected"],
