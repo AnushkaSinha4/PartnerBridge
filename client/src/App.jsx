@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login.jsx";
 
-
 import AdminLayout from "./components/layout/AdminLayout.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 
@@ -15,75 +14,41 @@ import EmployeeDashboard from "./pages/employee/EmployeeDashboard.jsx";
 import EmployeeTasks from "./pages/employee/EmployeeTasks.jsx";
 import EmployeeProjects from "./pages/employee/EmployeeProjects.jsx";
 import EmployeeProjectDetail from "./pages/employee/EmployeeProjectDetails.jsx";
-import Invoices from "./pages/admin/Invoices";
+
+import Invoices from "./pages/admin/Invoices.jsx";
 import ViewInvoice from "./pages/admin/ViewInvoice.jsx";
-import EditInvoice from "./pages/EditInvoice";
+import EditInvoice from "./pages/EditInvoice.jsx";
+import CreateInvoice from "./pages/admin/CreateInvoice.jsx";
 
 // 🔒 Protected Route
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
 
-  // not logged in
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // role restriction
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-
     if (role === "employee") {
       return <Navigate to="/employee/dashboard" replace />;
     }
-
     return <Navigate to="/admin/dashboard" replace />;
   }
 
   return children;
 };
 
-
 function App() {
-
   return (
-
     <BrowserRouter>
-
       <Routes>
 
         {/* LOGIN */}
         <Route path="/login" element={<Login />} />
 
-       
-        
-
-
         {/* ADMIN DEFAULT */}
-        <Route
-          path="/admin"
-          element={<Navigate to="/admin/dashboard" replace />}
-        />
-        <Route
-  path="/admin/invoices"
-  element={
-    <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
-      <AdminLayout>
-        <Invoices />
-      </AdminLayout>
-    </ProtectedRoute>
-  }
-/>
-<Route
- path="/admin/invoices/:id"
- element={
-   <ProtectedRoute allowedRoles={["admin","super_admin"]}>
-     <AdminLayout>
-       <ViewInvoice/>
-     </AdminLayout>
-   </ProtectedRoute>
- }
-/>
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
         {/* ADMIN DASHBOARD */}
         <Route
@@ -97,11 +62,55 @@ function App() {
           }
         />
 
-<Route
-path="/admin/invoices/edit/:id"
-element={<EditInvoice/>}
-/>
-        {/* ADMIN PARTNER */}
+        {/* INVOICES LIST */}
+        <Route
+          path="/admin/invoices"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+              <AdminLayout>
+                <Invoices />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* CREATE INVOICE ✅ FIXED */}
+        <Route
+          path="/admin/create-invoice"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+              <AdminLayout>
+                <CreateInvoice />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* VIEW INVOICE */}
+        <Route
+          path="/admin/invoices/:id"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+              <AdminLayout>
+                <ViewInvoice />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* EDIT INVOICE */}
+        <Route
+          path="/admin/invoices/edit/:id"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
+              <AdminLayout>
+                <EditInvoice />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ADMIN OTHER PAGES */}
         <Route
           path="/admin/partner"
           element={
@@ -113,8 +122,6 @@ element={<EditInvoice/>}
           }
         />
 
-
-        {/* ADMIN CLIENT */}
         <Route
           path="/admin/client"
           element={
@@ -126,8 +133,6 @@ element={<EditInvoice/>}
           }
         />
 
-
-        {/* ADMIN EMPLOYEE */}
         <Route
           path="/admin/employee"
           element={
@@ -139,13 +144,8 @@ element={<EditInvoice/>}
           }
         />
 
-
         {/* EMPLOYEE DEFAULT */}
-        <Route
-          path="/employee"
-          element={<Navigate to="/employee/dashboard" replace />}
-        />
-
+        <Route path="/employee" element={<Navigate to="/employee/dashboard" replace />} />
 
         {/* EMPLOYEE DASHBOARD */}
         <Route
@@ -157,7 +157,6 @@ element={<EditInvoice/>}
           }
         />
 
-
         {/* EMPLOYEE TASKS */}
         <Route
           path="/employee/tasks"
@@ -167,10 +166,6 @@ element={<EditInvoice/>}
             </ProtectedRoute>
           }
         />
-           <Route
-  path="/admin/invoices/:id"
-  element={<ViewInvoice />}
-/>
 
         {/* EMPLOYEE PROJECTS */}
         <Route
@@ -182,8 +177,7 @@ element={<EditInvoice/>}
           }
         />
 
-
-        {/* PROJECT DETAIL */}
+        {/* PROJECT DETAILS */}
         <Route
           path="/employee/projects/:projectId"
           element={
@@ -193,17 +187,12 @@ element={<EditInvoice/>}
           }
         />
 
-
         {/* DEFAULT */}
         <Route path="/" element={<Navigate to="/login" replace />} />
 
       </Routes>
-
     </BrowserRouter>
-
   );
-
 }
-
 
 export default App;
