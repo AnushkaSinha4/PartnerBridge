@@ -1,6 +1,7 @@
-// src/pages/Login.jsx
+
 import { useState } from "react";
 import axios from "axios";
+// import api from "../utils/api"
 import { useNavigate } from "react-router-dom";
 
 
@@ -8,29 +9,54 @@ const API_URL = "http://localhost:5000/api/v1";
 
 const Login = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  /* SEND OTP */
+
+  const sendOtp = async () => {
     setError("");
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${API_URL}/auth/login`,
-        { 
-          email: email.trim(), 
-          password: password.trim() 
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+       await axios.post(
+         "http://localhost:5000/api/v1/auth/send-otp",
+         { email: email.trim() },
+         { withCredentials: true }
+      );
+
+      setOtpSent(true);
+    } catch (err) {
+      if (err.code === "ERR_NETWORK") {
+        setError("Cannot connect to server. Please try again.");
+      } else {
+        setError(err.response?.data?.message || "Failed to send OTP");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /* VERIFY OTP */
+
+  const handleSubmit = async (e) => {
+    if(e) e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+     const response = await axios.post(
+       "http://localhost:5000/api/v1/auth/verify-otp",
+         {
+            email: email.trim(),
+            otp: otp.trim()
+         },
+         { withCredentials: true }
       );
 
       const { user, tokens } = response.data.data;
@@ -39,9 +65,10 @@ const Login = () => {
       localStorage.setItem("role", user.role);
 
       const routes = {
-        admin: "/admin",
-        employee: "/employee",
-        client: "/client",
+        super_admin: "/super-admin/dashboard",
+        admin: "/admin/dashboard",
+        employee: "/employee/dashboard",
+        client: "/client/dashboard",
         partner: "/partner",
       };
 
@@ -51,7 +78,7 @@ const Login = () => {
       if (err.code === "ERR_NETWORK") {
         setError("Cannot connect to server. Please try again.");
       } else if (err.response?.status === 401) {
-        setError("Invalid email or password");
+        setError("Invalid OTP");
       } else {
         setError(err.response?.data?.message || "Login failed");
       }
@@ -102,61 +129,63 @@ const Login = () => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} className="login-form">
+           <form onSubmit={handleSubmit} className="login-form">
+
+            {/* EMAIL */}
+
             <div className="form-group">
-              <label htmlFor="email">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                Email
-              </label>
+              <label>Email</label>
               <input
                 type="email"
-                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
                 disabled={loading}
-                className={error ? "error" : ""}
               />
             </div>
+
+            {/* OTP */}
 
             <div className="form-group">
-              <label htmlFor="password">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Password
-              </label>
+              <label>OTP</label>
               <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                type="text"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                placeholder="Enter OTP"
                 required
-                disabled={loading}
-                className={error ? "error" : ""}
+                disabled={!otpSent || loading}
               />
             </div>
 
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="login-button"
-            >
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Logging in...
-                </>
-              ) : (
-                "Login"
-              )}
+            {/* BUTTONS */}
+
+          <div style={{display:"flex",gap:"10px"}}>
+
+           <button
+           type="button"
+           className="login-button"
+           onClick={sendOtp}
+           disabled={loading}
+           >
+           {loading ? "Sending..." : "Send OTP"}
+
             </button>
+ 
+            {/* LOGIN BUTTON */}
+
+            <button
+            type="button"
+            className="login-button"
+            onClick={handleSubmit}
+            disabled={!otpSent || loading}
+            >
+
+            {loading ? "Verifying..." : "Verify & Login"}
+
+            </button>
+          </div>
           </form>
 
           

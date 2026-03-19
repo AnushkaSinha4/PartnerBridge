@@ -29,21 +29,29 @@ const Employee = () => {
       const token = localStorage.getItem("token");
 
       const res = await axios.get(
-        "http://localhost:5000/api/v1/admin/users",
+        "http://localhost:5000/api/v1/admin/employees",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
 
-      const employees = res.data?.data?.users.filter(
-        (user) => user.role === "employee"
-      );
+      // const employees = res.data?.data?.users.filter(
+      //   (user) => user.role === "employee"
+      // );
 
-      setUsers(employees || []);
+      const employees = res.data?.data?.employees || res.data?.data || [];
+
+  //     setUsers(employees || []);
+  //   } catch (err) {
+  //     console.log(err.response?.data || err.message);
+  //   }
+  // };
+
+ setUsers(Array.isArray(employees) ? employees : []);
     } catch (err) {
       console.log(err.response?.data || err.message);
     }
-  };
+  };  
 
   const handleDeleteUser = async (userId) => {
     const confirmDelete = window.confirm("Delete this employee?");
@@ -52,7 +60,7 @@ const Employee = () => {
     try {
       const token = localStorage.getItem("token");
 
-      await axios.delete(`http://localhost:5000/api/v1/users/${userId}`, {
+      await axios.delete(`http://localhost:5000/api/v1/admin/employees/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -66,9 +74,9 @@ const Employee = () => {
     try {
       const token = localStorage.getItem("token");
 
-      formData.role = "employee";
+      // formData.role = "employee";
 
-      await axios.post("http://localhost:5000/api/v1/users", formData, {
+      await axios.post("http://localhost:5000/api/v1/admin/create-employee", formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -79,9 +87,15 @@ const Employee = () => {
     }
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  // const filteredUsers = users.filter((user) =>
+  //   user.email?.toLowerCase().includes(search.toLowerCase())
+  // );
+
+ const filteredUsers = Array.isArray(users)
+    ? users.filter((user) =>
+        user.email?.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];  
 
   return (
     <div className="bg-gray-100 min-h-screen px-8 py-8">

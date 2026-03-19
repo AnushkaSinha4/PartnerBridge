@@ -1,22 +1,13 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const userSchema = new mongoose.Schema(
-{
+const userSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
         unique: true,
         lowercase: true,
         trim: true,
-    },
-
-    password: {
-        type: String,
-        required: true,
-        minlength: 6,
-        select: false,
     },
 
     firstName: {
@@ -46,67 +37,54 @@ const userSchema = new mongoose.Schema(
         default: "active",
     },
 
-    refreshToken: String,
+    /* ================= OTP LOGIN ================= */
 
-    lastLoginAt: Date,
+    otp: {
+        type: String,
+        default: null,
+    },
 
-    // ✅ OTP fields (for email login)
-    
-},
-{ timestamps: true }
-);
+    otpExpiry: {
+        type: Date,
+        default: null,
+    },
 
+    /* ================= TOKENS ================= */
+    refreshToken: {
+        type: String,
+    },
 
-/* ================= PASSWORD HASH ================= */
+    lastLoginAt: {
+        type: Date,
+    }
 
-userSchema.pre("save", async function () {
-
-    if (!this.isModified("password")) return;
-
-    const salt = await bcrypt.genSalt(10);
-
-    this.password = await bcrypt.hash(this.password, salt);
-
-});
-
+}, { timestamps: true });
 
 /* ================= METHODS ================= */
 
-userSchema.methods.comparePassword = async function (password) {
+userSchema.methods.generateAccessToken = function() {
 
-    return await bcrypt.compare(password, this.password);
-
-};
-
-
-userSchema.methods.generateAccessToken = function () {
-
-    return jwt.sign(
-        {
+    return jwt.sign({
             _id: this._id,
             email: this.email,
             role: this.role,
             organization: this.organization,
         },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: "1d" }
+        process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1d" }
     );
 
 };
 
 
-userSchema.methods.generateRefreshToken = function () {
+userSchema.methods.generateRefreshToken = function() {
 
-    return jwt.sign(
-        { _id: this._id },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: "7d" }
+    return jwt.sign({ _id: this._id },
+        process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" }
     );
 
 };
 
-
-userSchema.methods.getSanitizedUser = function () {
+userSchema.methods.getSanitizedUser = function() {
 
     return {
         _id: this._id,

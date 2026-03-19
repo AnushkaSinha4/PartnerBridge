@@ -58,12 +58,24 @@ export const userAPI = {
 
 // ===== PARTNER APIS =====
 export const partnerAPI = {
-    getAllPartners: (params) => api.get("/admin/partners", { params }),
+
+    // CREATE PARTNER ACCOUNT (ADMIN)
+    createPartner: (data) =>
+        api.post("/admin/create-partner", data),
+
+    // GET ALL PARTNERS
+    getAllPartners: (params) =>
+        api.get("/admin/partners", { params }),
+
+    // UPDATE PARTNER TIER
     updateTier: (id, tier, commissionRate) =>
         api.patch(`/admin/partners/${id}/tier`, { tier, commissionRate }),
+
+    // VERIFY PARTNER KYC
     verifyKYC: (id, status, remarks) =>
         api.patch(`/admin/partners/${id}/kyc`, { status, remarks }),
 };
+
 
 // ===== PROJECT APIS =====
 export const projectAPI = {
@@ -135,20 +147,20 @@ export const taskAPI = {
 
 // ===== EMPLOYEE APIS (ADD AT THE END OF FILE) =====
 export const employeeAPI = {
-  // Dashboard
-  getDashboard: () => api.get("/employee/dashboard"),
-  getStats: () => api.get("/employee/stats"),
+        // Dashboard
+        getDashboard: () => api.get("/employee/dashboard"),
+        getStats: () => api.get("/employee/stats"),
 
-  // Tasks (Kanban)
-  getMyTasks: (filters = {}) => {
-    const params = new URLSearchParams();
-    if (filters.status) params.append("status", filters.status);
-    if (filters.priority) params.append("priority", filters.priority);
-    if (filters.projectId) params.append("projectId", filters.projectId);
-    if (filters.search) params.append("search", filters.search);
-    
-    const queryString = params.toString();
-    return api.get(`/employee/tasks${queryString ? `?${queryString}` : ""}`);
+        // Tasks (Kanban)
+        getMyTasks: (filters = {}) => {
+                const params = new URLSearchParams();
+                if (filters.status) params.append("status", filters.status);
+                if (filters.priority) params.append("priority", filters.priority);
+                if (filters.projectId) params.append("projectId", filters.projectId);
+                if (filters.search) params.append("search", filters.search);
+
+                const queryString = params.toString();
+                return api.get(`/employee/tasks${queryString ? `?${queryString}` : ""}`);
   },
   
   updateTaskStatus: (taskId, status) => 
@@ -171,6 +183,18 @@ export const employeeAPI = {
       : `/employee/projects/${projectId}/deliverables`;
     return api.post(url, fileData);
   }
+};
+
+// ===== PARTNER ONBOARDING =====
+
+export const partnerOnboardingAPI = {
+
+  submitForm: (data) =>
+    api.post("/partners/onboarding", data),
+
+  getStatus: () =>
+    api.get("/partners/me")
+
 };
 
 export default api;

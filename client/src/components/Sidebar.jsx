@@ -2,9 +2,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  Users,
+  LayoutDashboard, ShoppingCart, Users, MessageSquare,
+  FolderOpen, Star, BarChart2, FileText,
+  FolderKanban, ClipboardList, Folders, Handshake,
   CheckSquare,
   LogOut,
   Zap,
@@ -45,33 +45,44 @@ const Sidebar = () => {
 
   const role = localStorage.getItem("role") || "admin";
   const isEmployee = role === "employee";
+  const isPartner = role ==="partner";
 
   /* ================= MAIN MENU ================= */
 
   const mainMenuItems = [
+
     { path: `/${role}/dashboard`, icon: LayoutDashboard, label: "Dashboard" },
 
-    ...(!isEmployee
-      ? [{ path: `/${role}/ecommerce`, icon: ShoppingCart, label: "E-commerce" }]
+    ...(role === "admin"
+      ? [
+          { path: "/admin/partners", icon: Handshake, label: "Partners" },
+          { path: "/admin/client", icon: Users, label: "Clients" },
+          { path: "/admin/employee", icon: Users, label: "Employees" },
+          { path: "/admin/invoices", icon: FileText, label: "Invoices" }
+        ]
       : []),
 
-    { path: `/${role}/partner`, icon: Users, label: "Partner" },
-    { path: `/${role}/client`, icon: Users, label: "Client" },
-    { path: `/${role}/employee`, icon: Users, label: "Employee" },
+    ...(role === "employee"
+      ? [
+          { path: "/employee/tasks", icon: CheckSquare, label: "My Tasks" },
+          { path: "/employee/projects", icon: FolderOpen, label: "Projects" }
+        ]
+      : []),
 
-    // ⭐ NEW INVOICE MENU
-    { path: `/${role}/invoices`, icon: Receipt, label: "Invoices" }
+    ...(role === "partner"
+      ? [
+          { path: "/partner/leads", icon: FolderKanban, label: "Leads" },
+          { path: "/partner/deals", icon: ClipboardList, label: "Deals" },
+          { path: "/partner/commissions", icon: BarChart2, label: "Commissions" }
+        ]
+      : [])
   ];
-
-  /* ================= PROJECT MENU ================= */
-
-  const projectMenuItems = [
-    {
-      path: `/${role}/tasks`,
-      icon: CheckSquare,
-      label: isEmployee ? "My Tasks" : "To Do"
-    }
-  ];
+  
+  const projectMenuItems = role === "employee"
+  ? [
+      { path: "/employee/tasks", icon: CheckSquare, label: "My Tasks" }
+    ]
+  : [];
 
   /* ================= NAV ITEM ================= */
 

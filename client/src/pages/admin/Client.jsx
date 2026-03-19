@@ -28,15 +28,22 @@ const Client = () => {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await axios.get("http://localhost:5000/api/v1/admin/users", {
+      const res = await axios.get("http://localhost:5000/api/v1/admin/clients", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const clients = res.data?.data?.users.filter(
-        (user) => user.role === "client"
-      );
+      // const clients = res.data?.data?.users.filter(
+      //   (user) => user.role === "client"
+      // );
+      const clients = res.data?.data?.clients || res.data?.data || [];
 
-      setUsers(clients || []);
+  //     setUsers(clients || []);
+  //   } catch (err) {
+  //     console.log(err.response?.data || err.message);
+  //   }
+  // };
+
+    setUsers(Array.isArray(clients) ? clients : []);
     } catch (err) {
       console.log(err.response?.data || err.message);
     }
@@ -48,7 +55,7 @@ const Client = () => {
 
       formData.role = "client";
 
-      await axios.post("http://localhost:5000/api/v1/users", formData, {
+      await axios.post("http://localhost:5000/api/v1/admin/create-client", formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -59,9 +66,15 @@ const Client = () => {
     }
   };
 
-  const filteredUsers = users.filter((user) =>
-    user.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  // const filteredUsers = users.filter((user) =>
+  //   user.email?.toLowerCase().includes(search.toLowerCase())
+  // );
+
+  const filteredUsers = Array.isArray(users)
+    ? users.filter((user) =>
+        user.email?.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
 
   return (
     <div className="bg-gray-100 min-h-screen px-8 py-8">

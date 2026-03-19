@@ -1,26 +1,43 @@
 import { asyncHandler } from "../utils/asynchandler.js";
 import { ApiError } from "../utils/apierror.js";
 import { ApiResponse } from "../utils/apiresponse.js";
-import { User } from "../models/user.model.js";
+import { Admin } from "../models/admin.model.js";
+import { PartnerAccount } from "../models/partnerAccount.model.js";
+import { EmployeeAccount } from "../models/employeeAccount.model.js";
+import { ClientAccount } from "../models/clientAccount.model.js"
+
 import { Organization } from "../models/organization.model.js";
 import jwt from "jsonwebtoken";
+import { generateOTP } from "../utils/generateOtp.js";
+import { sendOtpEmail } from "../utils/sendEmail.js";
 
-const generateTokens = async(user) => {
-    try {
-        const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
+/* ================= FIND USER BY EMAIL ================= */
+const findUserByEmail = async(email) => {
+    let user = await Admin.findOne({ email });
+    if (user) return { user, role: "admin", model: Admin };
+    user = await PartnerAccount.findOne({ email });
+    if (user) return { user, role: "partner", model: PartnerAccount };
+    user = await EmployeeAccount.findOne({ email });
+    if (user) return { user, role: "employee", model: EmployeeAccount };
+    user = await ClientAccount.findOne({ email });
+    if (user) return { user, role: "client", model: ClientAccount };
+    return null;
+};
 
-        user.refreshToken = refreshToken;
-        await user.save({ validateBeforeSave: false });
+/* ================= GENERATE TOKENS ================= */
+const generateTokens = async(user, role) => {
+    const accessToken = jwt.sign({ _id: user._id, email: user.email, role },
+        process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1d" }
+    );
 
-        return { accessToken, refreshToken };
-    } catch (error) {
-        console.error("Token generation error:", error);
-        throw new ApiError(
-            500,
-            (error && error.message) || "Something went wrong while generating tokens"
-        );
-    }
+    const refreshToken = jwt.sign({ _id: user._id },
+        process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" }
+    );
+
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
 };
 
 const setTokenCookies = (res, accessToken, refreshToken) => {
@@ -42,76 +59,69 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
     });
 };
 
-// REGISTER
-export const register = asyncHandler(async(req, res) => {
-    const { email, password, firstName, lastName, role, companyName, phoneNumber } =
-    req.body;
+/* ================= SEND OTP ================= */
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-        throw new ApiError(409, "User with this email already exists");
+export const sendOtp = asyncHandler(async(req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        throw new ApiError(400, "Email is required");
     }
-
-    const userData = {
-        email,
-        password,
-        firstName,
-        lastName,
-        role: role || "client",
-        phoneNumber,
-        status: "active",
-    };
-
-    if (role === "client" && companyName) {
-        userData.companyName = companyName;
-    }
-
-    const user = await User.create(userData);
-
-    const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken"
-    );
-
-    return res
-        .status(201)
-        .json(new ApiResponse(201, { user: createdUser }, "User registered successfully"));
-});
-
-
-// LOGIN
-export const login = asyncHandler(async(req, res) => {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-        throw new ApiError(400, "Email and password are required");
-    }
-
-    // Always normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    const user = await User.findOne({ email: normalizedEmail }).select("+password");
+    const result = await findUserByEmail(normalizedEmail);
 
-    if (!user) {
-        throw new ApiError(401, "Invalid credentials");
+    if (!result) {
+        throw new ApiError(404, "User not found");
     }
-
-    const isPasswordValid = await user.comparePassword(password);
-
-    if (!isPasswordValid) {
-        throw new ApiError(401, "Invalid credentials");
-    }
-
+    const { user } = result;
     if (user.status !== "active") {
-        throw new ApiError(
-            403,
-            "Your account is " + user.status + ". Please contact admin."
-        );
+        throw new ApiError(403, "Your account is " + user.status + ". Please contact admin.");
     }
 
-    user.lastLoginAt = new Date();
+    const otp = generateOTP();
+
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+
     await user.save({ validateBeforeSave: false });
 
-    const tokens = await generateTokens(user);
+    // await sendOtpEmail(user.email, otp);
+
+    console.log("OTP:", otp);
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, "OTP sent successfully"));
+});
+
+/* ================= VERIFY OTP / LOGIN ================= */
+
+export const verifyOtp = asyncHandler(async(req, res) => {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+        throw new ApiError(400, "Email and OTP required");
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+    const result = await findUserByEmail(normalizedEmail);
+    if (!result) {
+        throw new ApiError(401, "Invalid email or OTP");
+    }
+    const { user, role } = result;
+    if (!user.otp || user.otp !== otp) {
+        throw new ApiError(401, "Invalid OTP");
+    }
+    if (user.otpExpiry < Date.now()) {
+        throw new ApiError(401, "OTP expired");
+    }
+
+    user.otp = null;
+    user.otpExpiry = null;
+    user.lastLoginAt = new Date();
+
+    await user.save({ validateBeforeSave: false });
+
+    const tokens = await generateTokens(user, role);
 
     let organization = null;
     if (user.organization) {
@@ -120,7 +130,7 @@ export const login = asyncHandler(async(req, res) => {
 
     setTokenCookies(res, tokens.accessToken, tokens.refreshToken);
 
-    const sanitizedUser = user.getSanitizedUser();
+    // const sanitizedUser = user.getSanitizedUser();
 
     const dashboardRoutes = {
         super_admin: "/super-admin/dashboard",
@@ -131,43 +141,55 @@ export const login = asyncHandler(async(req, res) => {
     };
 
     return res.status(200).json(
-        new ApiResponse(
-            200, {
-                user: sanitizedUser,
+        new ApiResponse(200, {
+                user: {
+                    _id: user._id,
+                    email: user.email,
+                    role
+                },
                 organization,
                 tokens,
-                dashboard: dashboardRoutes[user.role] || "/",
+                dashboard: dashboardRoutes[role] || "/"
             },
             "Login successful"
         )
     );
 });
 
-// LOGOUT
-export const logout = asyncHandler(async(req, res) => {
-    await User.findByIdAndUpdate(
-        req.user._id, { $unset: { refreshToken: 1 } }, { new: true }
-    );
+/* ================= LOGOUT ================= */
 
+export const logout = asyncHandler(async(req, res) => {
+
+    const { userId, role } = req.user;
+
+    let Model;
+
+    if (role === "admin") Model = Admin;
+    if (role === "partner") Model = PartnerAccount;
+    if (role === "employee") Model = EmployeeAccount;
+    if (role === "client") Model = ClientAccount;
+    await Model.findByIdAndUpdate(
+        userId, { $unset: { refreshToken: 1 } }
+    );
     const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "strict"
     };
-
     res.clearCookie("accessToken", cookieOptions);
     res.clearCookie("refreshToken", {
         ...cookieOptions,
-        path: "/api/v1/auth/refresh-token",
+        path: "/api/v1/auth/refresh-token"
     });
-
     return res
         .status(200)
         .json(new ApiResponse(200, {}, "Logged out successfully"));
 });
 
-// REFRESH TOKEN
+/* ================= REFRESH TOKEN ================= */
+
 export const refreshAccessToken = asyncHandler(async(req, res) => {
+
     const incomingRefreshToken =
         (req.cookies && req.cookies.refreshToken) || req.body.refreshToken;
 
@@ -176,12 +198,17 @@ export const refreshAccessToken = asyncHandler(async(req, res) => {
     }
 
     try {
+
         const decodedToken = jwt.verify(
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         );
 
-        const user = await User.findById(decodedToken._id);
+        let user =
+            await Admin.findById(decodedToken._id) ||
+            await PartnerAccount.findById(decodedToken._id) ||
+            await EmployeeAccount.findById(decodedToken._id) ||
+            await ClientAccount.findById(decodedToken._id);
 
         if (!user || user.refreshToken !== incomingRefreshToken) {
             throw new ApiError(401, "Invalid refresh token");
@@ -200,6 +227,7 @@ export const refreshAccessToken = asyncHandler(async(req, res) => {
                 "Access token refreshed"
             )
         );
+
     } catch (error) {
         throw new ApiError(
             401,
@@ -208,17 +236,28 @@ export const refreshAccessToken = asyncHandler(async(req, res) => {
     }
 });
 
-// CURRENT USER
+/* ================= CURRENT USER ================= */
+
 export const getCurrentUser = asyncHandler(async(req, res) => {
-    const user = await User.findById(req.user._id)
+
+    const { _id, role } = req.user;
+
+    let Model;
+
+    if (role === "admin") Model = Admin;
+    if (role === "partner") Model = PartnerAccount;
+    if (role === "employee") Model = EmployeeAccount;
+    if (role === "client") Model = ClientAccount;
+
+    const user = await Model.findById(userId)
         .populate("organization", "name type logo")
-        .select("-password -refreshToken");
+        .select("-refreshToken");
 
     return res.status(200).json(
         new ApiResponse(
             200, {
-                user: user.getSanitizedUser(),
-                organization: user.organization,
+                user,
+                organization: user.organization
             },
             "Current user fetched successfully"
         )
