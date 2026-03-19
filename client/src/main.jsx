@@ -6,7 +6,7 @@ import App from './App.jsx'
 
 /* ================= AXIOS GLOBAL CONFIG ================= */
 
-axios.defaults.baseURL = "http://localhost:5000/api/v1";
+axios.defaults.baseURL = "http://localhost:8000/api/v1";
 axios.defaults.withCredentials = true;
 
 axios.interceptors.request.use((config) => {

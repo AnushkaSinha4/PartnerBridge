@@ -1,4 +1,3 @@
-
 import "./App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -95,14 +94,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-          <Route
-  path="/partner/leads"
-  element={
-    <ProtectedRoute allowedRoles={["partner"]}>
-      <Leads />
-    </ProtectedRoute>
-  }
-/>
+
         <Route
           path="/admin/partners/:id"
           element={
@@ -269,6 +261,18 @@ function App() {
             <ProtectedRoute allowedRoles={["partner"]}>
               <AdminLayout>
                 <PartnerDashboard />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ FIXED: Leads now wrapped inside AdminLayout */}
+        <Route
+          path="/partner/leads"
+          element={
+            <ProtectedRoute allowedRoles={["partner"]}>
+              <AdminLayout>
+                <Leads />
               </AdminLayout>
             </ProtectedRoute>
           }

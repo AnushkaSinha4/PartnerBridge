@@ -23,7 +23,7 @@ const AdminPartners = () => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        "http://localhost:5000/api/v1/partners/admin/all",
+        "http://localhost:8000/api/v1/partners/admin/all",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -47,7 +47,7 @@ const AdminPartners = () => {
       const token = localStorage.getItem("token");
 
       await axios.post(
-        "http://localhost:5000/api/v1/admin/create-partner",
+        "http://localhost:8000/api/v1/admin/create-partner",
         formData,
         {
           headers: {
@@ -84,7 +84,7 @@ const AdminPartners = () => {
       const token = localStorage.getItem("token");
 
       await axios.put(
-          `http://localhost:5000/api/v1/partners/admin/${id}/status`,
+          `http://localhost:8000/api/v1/partners/admin/${id}/status`,
         { status },
         {
           headers: {

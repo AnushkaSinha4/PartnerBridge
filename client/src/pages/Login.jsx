@@ -5,7 +5,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 
-const API_URL = "http://localhost:5000/api/v1";
+const API_URL = "http://localhost:8000/api/v1";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -25,7 +25,7 @@ const Login = () => {
 
     try {
        await axios.post(
-         "http://localhost:5000/api/v1/auth/send-otp",
+         "http://localhost:8000/api/v1/auth/send-otp",
          { email: email.trim() },
          { withCredentials: true }
       );
@@ -51,7 +51,7 @@ const Login = () => {
 
     try {
      const response = await axios.post(
-       "http://localhost:5000/api/v1/auth/verify-otp",
+       "http://localhost:8000/api/v1/auth/verify-otp",
          {
             email: email.trim(),
             otp: otp.trim()

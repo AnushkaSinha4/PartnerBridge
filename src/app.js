@@ -48,29 +48,17 @@ import adminRoutes from "./routes/admin.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 
 import taskRoutes from "./routes/task.routes.js";
-import userRoutes from "./routes/user.routes.js";
 import employeeRoutes from "./routes/employee.routes.js";
 import partnerRoutes from "./routes/partner.routes.js";
-
-/* NEW INVOICE ROUTE */
-import invoiceRoutes from "./routes/invoice.routes.js";
-
-/* NEW LEAD ROUTE */
-import leadRoutes from "./routes/lead.routes.js";
+import leadRoutes from "./routes/lead.routes.js"; 
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/projects", projectRoutes);
 app.use("/api/v1/tasks", taskRoutes);
-app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/employee", employeeRoutes);
 app.use("/api/v1/partners", partnerRoutes);
-
-/* INVOICE API */
-app.use("/api/v1/invoice", invoiceRoutes);
-/*  LEAD API */
-app.use("/api/v1/leads", leadRoutes);
-
+app.use("/api/v1/leads", leadRoutes);  
 /* ================= HEALTH CHECK ================= */
 
 app.get("/health", (req, res) => {
